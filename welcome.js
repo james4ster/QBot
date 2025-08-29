@@ -1,12 +1,12 @@
 // welcome.js
-// League Material channel ID: 1197185335248031784
-// Rules channel ID:  1196274672367575040
-// Edwardo Juarez userID: 1398030768072167525
-// TickleBot userID: 1394409621229408296
+// League Material channel ID: 
+// Rules channel ID:  
+// Edwardo Juarez userID: 
+// TickleBot userID: 
 
 export function handleGuildMemberAdd(client) {
   client.on('guildMemberAdd', async (member) => {
-    const welcomeChannelId = '1197193529059979475';
+    const welcomeChannelId = '';   // Need Q channel ID if Cey wants this
     const channel = member.guild.channels.cache.get(welcomeChannelId);
     if (!channel) return;
 

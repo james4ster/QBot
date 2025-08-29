@@ -1,22 +1,9 @@
-import { Client, GatewayIntentBits } from 'discord.js';
+import { Client, GatewayIntentBits } from "discord.js";
 
-const client = new Client({
-  intents: [GatewayIntentBits.Guilds] // minimal intent just to connect
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+
+client.once("clientReady", () => {
+  console.log(`Logged in as ${client.user.tag}!`);
 });
 
-client.once('ready', () => {
-  console.log(`✅ Logged in as ${client.user.tag}`);
-});
-
-client.on('error', (err) => {
-  console.error('❌ Client error:', err);
-});
-
-(async () => {
-  try {
-    await client.login(process.env.DISCORD_TOKEN);
-    console.log('Login promise resolved');
-  } catch (err) {
-    console.error('❌ Login failed:', err);
-  }
-})();
+client.login(process.env.DISCORD_BOT_TOKEN);

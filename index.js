@@ -44,38 +44,33 @@ const auth = new google.auth.GoogleAuth({
 const sheets = google.sheets({ version: 'v4', auth });
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 
-
-// === Bot Ready ===
-client.once('clientReady', async () => {
-  console.log(`🤖 Logged in as ${client.user.tag}!`);
-});
-
-
 // === Login to Discord ===
 client.login(process.env.DISCORD_BOT_TOKEN)
   .catch(err => {
     console.error('❌ Discord login failed:', err);
   });
 
-// === Remove old listeners (optional, good for hot reload) ===
-client.removeAllListeners('messageCreate');
 
-// === Message listener for phrases ===
-client.on('messageCreate', (message) => {
-  if (message.author.bot) return;
+// === Bot Ready & Listener ===
+client.once('clientReady', () => {
+  console.log(`🤖 Logged in as ${client.user.tag}!`);
 
-  const content = message.content.toLowerCase();
-  let responded = false;
+  // === Message listener for phrases (registered once) ===
+  client.on('messageCreate', (message) => {
+    if (message.author.bot) return;
 
-  for (const obj of phrases) {
-    for (const trigger of obj.triggers) {
-      if (content.includes(trigger.toLowerCase()) && !responded) {
-        message.channel.send(obj.response);
-        responded = true;
-        break;
+    const content = message.content.toLowerCase();
+    for (const obj of phrases) {
+      for (const trigger of obj.triggers) {
+        if (content.includes(trigger.toLowerCase())) {
+          message.channel.send(obj.response);
+          return; // respond only once per message
+        }
       }
     }
-    if (responded) break;
-  }
+  });
 });
+
+
+
 

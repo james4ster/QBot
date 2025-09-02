@@ -46,7 +46,7 @@ const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 
 
 // === Bot Ready ===
-client.once('clientready', async () => {
+client.once('clientReady', async () => {
   console.log(`🤖 Logged in as ${client.user.tag}!`);
 });
 
@@ -57,23 +57,25 @@ client.login(process.env.DISCORD_BOT_TOKEN)
     console.error('❌ Discord login failed:', err);
   });
 
+// === Remove old listeners (optional, good for hot reload) ===
+client.removeAllListeners('messageCreate');
+
 // === Message listener for phrases ===
 client.on('messageCreate', (message) => {
-  if (message.author.bot) return; // ignore other bots
+  if (message.author.bot) return;
 
   const content = message.content.toLowerCase();
-
   let responded = false;
 
   for (const obj of phrases) {
     for (const trigger of obj.triggers) {
       if (content.includes(trigger.toLowerCase()) && !responded) {
         message.channel.send(obj.response);
-        responded = true; // mark as responded
-        break; // stop inner loop
+        responded = true;
+        break;
       }
     }
-    if (responded) break; // stop outer loop
+    if (responded) break;
   }
 });
 

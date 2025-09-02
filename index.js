@@ -59,15 +59,24 @@ client.once('clientReady', () => {
   client.on('messageCreate', (message) => {
     if (message.author.bot) return;
 
-    const content = message.content.toLowerCase();
+    const content = message.content.toLowerCase().split(/\s+/); // split into words
 
     for (const obj of phrases) {
       for (const trigger of obj.triggers) {
-        // Create a regex to match whole word
-        const regex = new RegExp(`\\b${trigger.toLowerCase()}\\b`);
-        if (regex.test(content)) {
-          message.channel.send(obj.response);
-          return; // respond only once per message
+        const triggerLower = trigger.toLowerCase();
+        if (triggerLower.length <= 2) {
+          // For very short triggers, check exact word match
+          if (content.includes(triggerLower)) {
+            message.channel.send(obj.response);
+            return;
+          }
+        } else {
+          // For longer triggers, use regex with word boundaries
+          const regex = new RegExp(`\\b${triggerLower}\\b`, 'i');
+          if (regex.test(message.content)) {
+            message.channel.send(obj.response);
+            return;
+          }
         }
       }
     }

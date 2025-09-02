@@ -43,43 +43,34 @@ const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 client.login(process.env.DISCORD_BOT_TOKEN)
   .catch(err => console.error('❌ Discord login failed:', err));
 
-// === Cooldowns & Deduplication ===
-const tickleCooldown = new Set();
-const recentMessages = new Set(); // prevent multiple responses per message
 
-// === Bot Ready & Listener ===
-client.once('clientReady', () => {
-  console.log(`🤖 Logged in as ${client.user.tag}!`);
+// === Listeners and Message Handling ===
+const repliedMessages = new Set();
 
-  client.on('messageCreate', async (message) => {
-    if (message.author.bot) return;
+client.on('messageCreate', async message => {
+  if (message.author.bot || message.webhookId) return;
+  if (repliedMessages.has(message.id)) return;
 
-    // Deduplicate messages to avoid multiple responses from hot reloads / multiple processes
-    if (recentMessages.has(message.id)) return;
-    recentMessages.add(message.id);
-    setTimeout(() => recentMessages.delete(message.id), 5000); // keep message in set for 5s
+  const msgLower = message.content.toLowerCase();
 
-    const msgLower = message.content.toLowerCase();
+  // ✅ Ticklebot mention / keyword
+  if (message.mentions.has(client.user) || msgLower.includes('ticklebot')) {
+    repliedMessages.add(message.id);
+    await message.reply("🐺 What do you want? I'm busy watching Nyad.");
+    setTimeout(() => repliedMessages.delete(message.id), 60 * 1000); // 1-minute cooldown
+    return;
+  }
 
-    // === Handle ticklebot mention / keyword with 1-minute cooldown ===
-    if (message.mentions.has(client.user) || msgLower.includes('ticklebot')) {
-      if (!tickleCooldown.has(message.author.id)) {
-        tickleCooldown.add(message.author.id);
-        await message.reply("🐺 What do you want? I'm busy watching Nyad.");
-        setTimeout(() => tickleCooldown.delete(message.author.id), 60 * 1000);
-      }
-      return; // stop further processing
+  // === phrases.json triggers ===
+  for (const phraseObj of phrases) {
+    const triggers = phraseObj.triggers.map(t => t.toLowerCase());
+    const triggerMatches = triggers.some(trigger => new RegExp(`\\b${trigger}\\b`, 'i').test(msgLower));
+    if (triggerMatches) {
+      repliedMessages.add(message.id);
+      await message.channel.send(phraseObj.response);
+      setTimeout(() => repliedMessages.delete(message.id), 10 * 60 * 1000);
+      break;
     }
-
-    // === Normal phrases ===
-    for (const obj of phrases) {
-      for (const trigger of obj.triggers) {
-        const regex = new RegExp(`\\b${trigger.toLowerCase()}\\b`, 'i');
-        if (regex.test(msgLower)) {
-          await message.channel.send(obj.response);
-          return; // respond only once per message
-        }
-      }
-    }
-  });
+  }
 });
+

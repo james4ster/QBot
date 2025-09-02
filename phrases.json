@@ -1,20 +1,11 @@
 [
   {
-    "triggers": ["bs", "down b"],
-    "response": "🐺 Listen..... down vaginoids are not allowed in this league. If you want to watch a movie about an elderly woman swimming, I'll be your Huckleberry"
-  },
-  {
-    "triggers": ["ot", "overtime"],
-    "response": "🐺 Nobody gives a fuck if your game went to overtime",
-    "channel": ["pure-scores", "s14-playoff-scores"]
-  },
-  {
     "triggers": ["this league sucks"],
     "response": "🐺 I agree ~ wanna watch Nyad with me?"
   },
   {
     "triggers": ["penalties"],
-    "response": "🐺 This league will never have penalties numnuts.  Unless you mean for not finishing games, we have those!"
+    "response": "🐺 Enough with the penalties."
   },
   {
     "triggers": ["seagull", "sea gull"],
@@ -35,5 +26,13 @@
   {
     "triggers": ["tecmo"],
     "response": "🐺 Nobody cares about Tecmo Bowl....TY"
+  },
+  {
+    "triggers": ["rom"],
+    "response": "🐺 We are working on it....TY"
+  },
+  {
+    "triggers": ["wheel"],
+    "response": "🐺 I can spin it after Nyad"
   }
 ]

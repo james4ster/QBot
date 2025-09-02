@@ -1,66 +1,74 @@
+// === Imports ===
 import 'dotenv/config';
 import express from 'express';
 import { Client, GatewayIntentBits } from 'discord.js';
-import { GoogleSpreadsheet } from 'google-spreadsheet';
+import { google } from 'googleapis';
+import fetch from 'node-fetch'; // Make sure node-fetch is installed
 
-// ---- Express Server ----
+import fs from 'fs';
+const phrases = JSON.parse(fs.readFileSync('./phrases.json', 'utf-8'));
+
+
+
+// === Express Server ===
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+app.use(express.json());
+
 app.get('/', (req, res) => {
-  res.send('TickleBot is alive!');
+  res.send('QBot is alive!');
 });
 
+
+// === Start Express Server ===
 app.listen(PORT, () => {
   console.log(`🌐 Express server listening on port ${PORT}`);
 });
 
-// ---- Discord Bot ----
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+// === Discord Bot ===
+const client = new Client({ 
+  intents: [
+    GatewayIntentBits.Guilds, 
+    GatewayIntentBits.GuildMessages, 
+    GatewayIntentBits.MessageContent 
+  ] 
+});
 
-client.once('ready', () => {
+// === Google Sheets Setup ===
+const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+const auth = new google.auth.GoogleAuth({
+  credentials,
+  scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+});
+const sheets = google.sheets({ version: 'v4', auth });
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
+
+
+// === Bot Ready ===
+client.once('clientready', async () => {
   console.log(`🤖 Logged in as ${client.user.tag}!`);
 });
 
-client.login(process.env.DISCORD_BOT_TOKEN);
 
-// ---- Google Sheets ----
-const SHEET_ID = process.env.SPREADSHEET_ID;
-const creds = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+// === Login to Discord ===
+client.login(process.env.DISCORD_BOT_TOKEN)
+  .catch(err => {
+    console.error('❌ Discord login failed:', err);
+  });
 
-async function getCurrentSeason() {
-  try {
-    const doc = new GoogleSpreadsheet(SHEET_ID);
+// === Message listener for phrases ===
+client.on('messageCreate', (message) => {
+  if (message.author.bot) return; // ignore other bots
 
-    // v5 authentication
-    await doc.useServiceAccountAuth({
-      client_email: creds.client_email,
-      private_key: creds.private_key,
-    });
+  const content = message.content.toLowerCase();
 
-    await doc.loadInfo();
-
-    const settingsSheet = doc.sheetsByTitle['BSB Settings'];
-    if (!settingsSheet) {
-      console.error('BSB Settings tab not found!');
-      return null;
+  for (const obj of phrases) {
+    for (const trigger of obj.triggers) {
+      if (content.includes(trigger.toLowerCase())) {
+        message.channel.send(obj.response);
+        return; // respond only once per message
+      }
     }
-
-    await settingsSheet.loadCells('B10');
-    const currentSeasonCell = settingsSheet.getCellByA1('B10');
-    console.log('🏒 Current season:', currentSeasonCell.value);
-
-    return currentSeasonCell.value;
-  } catch (err) {
-    console.error('Error accessing Google Sheet:', err);
-    return null;
-  }
-}
-
-// Example usage: announce current season once ready
-client.once('ready', async () => {
-  const season = await getCurrentSeason();
-  if (season) {
-    console.log(`Season loaded for bot: ${season}`);
   }
 });

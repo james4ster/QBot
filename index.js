@@ -18,6 +18,12 @@ app.listen(PORT, () => {
 // ---- Discord Bot ----
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
+client.once('ready', () => {
+  console.log(`🤖 Logged in as ${client.user.tag}!`);
+});
+
+client.login(process.env.DISCORD_BOT_TOKEN);
+
 // ---- Google Sheets ----
 const SHEET_ID = process.env.SPREADSHEET_ID;
 const creds = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
@@ -25,7 +31,13 @@ const creds = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
 async function getCurrentSeason() {
   try {
     const doc = new GoogleSpreadsheet(SHEET_ID);
-    await doc.useServiceAccountAuth(creds); // async auth
+
+    // v5 authentication
+    await doc.useServiceAccountAuth({
+      client_email: creds.client_email,
+      private_key: creds.private_key,
+    });
+
     await doc.loadInfo();
 
     const settingsSheet = doc.sheetsByTitle['BSB Settings'];
@@ -45,13 +57,10 @@ async function getCurrentSeason() {
   }
 }
 
-// Bot ready event
-client.once('clientReady', async () => {
-  console.log(`🤖 Logged in as ${client.user.tag}!`);
+// Example usage: announce current season once ready
+client.once('ready', async () => {
   const season = await getCurrentSeason();
   if (season) {
     console.log(`Season loaded for bot: ${season}`);
   }
 });
-
-client.login(process.env.DISCORD_BOT_TOKEN);

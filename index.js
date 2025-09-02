@@ -26,7 +26,7 @@ client.login(process.env.DISCORD_BOT_TOKEN);
 
 // ---- Google Sheets ----
 const SHEET_ID = process.env.SPREADSHEET_ID;
-const creds = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
+const creds = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
 
 async function getCurrentSeason() {
   try {

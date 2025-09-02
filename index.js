@@ -62,9 +62,10 @@ client.once('clientReady', () => {
     if (message.author.bot) return;
 
     const msgLower = message.content.toLowerCase();
+    const msgWords = msgLower.split(/\s+/);
 
     // === Handle ticklebot mention / keyword with 1-minute cooldown ===
-    if ((message.mentions.has(client.user) || msgLower.includes('ticklebot'))) {
+    if (message.mentions.has(client.user) || msgLower.includes('ticklebot')) {
       if (!tickleCooldown.has(message.author.id)) {
         tickleCooldown.add(message.author.id);
         await message.reply("🐺 What do you want? I'm busy watching Nyad.");

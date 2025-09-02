@@ -52,7 +52,6 @@ client.login(process.env.DISCORD_BOT_TOKEN)
 
 
 // === Bot Ready & Listener ===
-
 const tickleCooldown = new Set();
 
 client.once('clientReady', () => {
@@ -62,7 +61,6 @@ client.once('clientReady', () => {
     if (message.author.bot) return;
 
     const msgLower = message.content.toLowerCase();
-    const msgWords = msgLower.split(/\s+/);
 
     // === Handle ticklebot mention / keyword with 1-minute cooldown ===
     if (message.mentions.has(client.user) || msgLower.includes('ticklebot')) {
@@ -79,7 +77,7 @@ client.once('clientReady', () => {
       for (const trigger of obj.triggers) {
         const triggerLower = trigger.toLowerCase();
 
-        // Use word boundary regex for everything, including short triggers
+        // Always use regex with word boundaries so short + long triggers behave correctly
         const regex = new RegExp(`\\b${triggerLower}\\b`, 'i');
         if (regex.test(msgLower)) {
           await message.channel.send(obj.response);

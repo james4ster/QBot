@@ -51,12 +51,14 @@ client.login(process.env.DISCORD_BOT_TOKEN)
 
 
 // === Bot Ready & Listener ===
-// === Bot Ready ===
 const tickleCooldown = new Set();
 
 client.once('clientReady', () => {
   console.log(`🤖 Logged in as ${client.user.tag}!`);
 });
+
+// Remove any old messageCreate listeners (prevents duplication)
+client.removeAllListeners('messageCreate');
 
 // === Message listener ===
 client.on('messageCreate', async (message) => {
@@ -77,8 +79,7 @@ client.on('messageCreate', async (message) => {
   // === Normal phrases ===
   for (const obj of phrases) {
     for (const trigger of obj.triggers) {
-      const triggerLower = trigger.toLowerCase();
-      const regex = new RegExp(`\\b${triggerLower}\\b`, 'i');
+      const regex = new RegExp(`\\b${trigger.toLowerCase()}\\b`, 'i');
       if (regex.test(msgLower)) {
         await message.channel.send(obj.response);
         return; // respond only once per message
@@ -86,4 +87,5 @@ client.on('messageCreate', async (message) => {
     }
   }
 });
+
 

@@ -61,7 +61,7 @@ client.once('clientReady', () => {
   client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
-    const msgLower = message.content.toLowerCase().split(/\s+/); // split into words
+    const msgLower = message.content.toLowerCase();
 
     // === Handle ticklebot mention / keyword with 1-minute cooldown ===
     if ((message.mentions.has(client.user) || msgLower.includes('ticklebot'))) {
@@ -78,25 +78,13 @@ client.once('clientReady', () => {
       for (const trigger of obj.triggers) {
         const triggerLower = trigger.toLowerCase();
 
-        if (triggerLower.length <= 2) {
-          if (msgLower.includes(triggerLower)) {
-            await message.channel.send(obj.response);
-            return; // respond only once per message
-          }
-        } else {
-          const regex = new RegExp(`\\b${triggerLower}\\b`, 'i');
-          if (regex.test(message.content)) {
-            await message.channel.send(obj.response);
-            return; // respond only once per message
-          }
+        // Use word boundary regex for everything, including short triggers
+        const regex = new RegExp(`\\b${triggerLower}\\b`, 'i');
+        if (regex.test(msgLower)) {
+          await message.channel.send(obj.response);
+          return; // respond only once per message
         }
       }
     }
   });
 });
-
-
-
-
-
-

@@ -6,23 +6,20 @@ import { google } from 'googleapis';
 import fetch from 'node-fetch';
 import fs from 'fs';
 
-// Load phrases
 const phrases = JSON.parse(fs.readFileSync('./phrases.json', 'utf-8'));
 
 // === Express Server ===
 const app = express();
 const PORT = process.env.PORT || 10000;
 app.use(express.json());
+
 app.get('/', (req, res) => res.send('QBot is alive!'));
+
 app.listen(PORT, () => console.log(`🌐 Express server listening on port ${PORT}`));
 
 // === Discord Bot ===
-const client = new Client({ 
-  intents: [
-    GatewayIntentBits.Guilds, 
-    GatewayIntentBits.GuildMessages, 
-    GatewayIntentBits.MessageContent
-  ]
+const client = new Client({
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
 });
 
 // === Google Sheets Setup ===
@@ -34,12 +31,10 @@ const auth = new google.auth.GoogleAuth({
 const sheets = google.sheets({ version: 'v4', auth });
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 
-// === Login to Discord (only once) ===
-client.login(process.env.DISCORD_BOT_TOKEN)
-  .catch(err => console.error('❌ Discord login failed:', err));
-
 // === Message Handling ===
 const repliedMessages = new Set();
+
+client.once('clientReady', () => console.log(`🤖 Logged in as ${client.user.tag}!`));
 
 client.on('messageCreate', async message => {
   if (message.author.bot || message.webhookId) return;
@@ -47,15 +42,15 @@ client.on('messageCreate', async message => {
 
   const msgLower = message.content.toLowerCase();
 
-  // ✅ Ticklebot mention / keyword with 1-minute cooldown
+  // ✅ Ticklebot mention / keyword
   if (message.mentions.has(client.user) || msgLower.includes('ticklebot')) {
     repliedMessages.add(message.id);
     await message.reply("🐺 What do you want? I'm busy watching Nyad.");
-    setTimeout(() => repliedMessages.delete(message.id), 60 * 1000);
+    setTimeout(() => repliedMessages.delete(message.id), 60 * 1000); // 1-minute cooldown
     return;
   }
 
-  // ✅ phrases.json triggers with 10-minute cooldown
+  // === phrases.json triggers ===
   for (const phraseObj of phrases) {
     const triggers = phraseObj.triggers.map(t => t.toLowerCase());
     const triggerMatches = triggers.some(trigger => new RegExp(`\\b${trigger}\\b`, 'i').test(msgLower));
@@ -63,11 +58,11 @@ client.on('messageCreate', async message => {
       repliedMessages.add(message.id);
       await message.channel.send(phraseObj.response);
       setTimeout(() => repliedMessages.delete(message.id), 10 * 60 * 1000);
-      break;
+      break; // Only respond once per message
     }
   }
 });
 
-client.once('clientReady', () => {
-  console.log(`🤖 Logged in as ${client.user.tag}!`);
-});
+// === Login to Discord ===
+client.login(process.env.DISCORD_BOT_TOKEN)
+  .catch(err => console.error('❌ Discord login failed:', err));

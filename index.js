@@ -60,9 +60,12 @@ client.once('clientReady', () => {
     if (message.author.bot) return;
 
     const content = message.content.toLowerCase();
+
     for (const obj of phrases) {
       for (const trigger of obj.triggers) {
-        if (content.includes(trigger.toLowerCase())) {
+        // Create a regex to match whole word
+        const regex = new RegExp(`\\b${trigger.toLowerCase()}\\b`);
+        if (regex.test(content)) {
           message.channel.send(obj.response);
           return; // respond only once per message
         }

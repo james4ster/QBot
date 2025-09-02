@@ -52,21 +52,35 @@ client.login(process.env.DISCORD_BOT_TOKEN)
 
 
 // === Bot Ready & Listener ===
+// === Bot Ready & Listener ===
 client.once('clientReady', () => {
   console.log(`🤖 Logged in as ${client.user.tag}!`);
 
+  const tickleCooldown = new Set();
+
   // === Message listener for phrases (registered once) ===
-  client.on('messageCreate', (message) => {
+  client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
-    const content = message.content.toLowerCase().split(/\s+/); // split into words
+    const msgLower = message.content.toLowerCase().split(/\s+/); // split into words
 
+    // === Handle ticklebot mention / keyword with 1-minute cooldown ===
+    if ((message.mentions.has(client.user) || msgLower.includes('ticklebot'))) {
+      if (!tickleCooldown.has(message.author.id)) {
+        tickleCooldown.add(message.author.id);
+        await message.reply("🐺 What do you want? I'm busy watching Nyad.");
+        setTimeout(() => tickleCooldown.delete(message.author.id), 60 * 1000); // 1 minute
+      }
+      return; // stop further phrase processing
+    }
+
+    // === Normal phrases ===
     for (const obj of phrases) {
       for (const trigger of obj.triggers) {
         const triggerLower = trigger.toLowerCase();
         if (triggerLower.length <= 2) {
           // For very short triggers, check exact word match
-          if (content.includes(triggerLower)) {
+          if (msgLower.includes(triggerLower)) {
             message.channel.send(obj.response);
             return;
           }
@@ -82,6 +96,7 @@ client.once('clientReady', () => {
     }
   });
 });
+
 
 
 

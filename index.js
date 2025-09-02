@@ -52,13 +52,12 @@ client.login(process.env.DISCORD_BOT_TOKEN)
 
 
 // === Bot Ready & Listener ===
-// === Bot Ready & Listener ===
+
+const tickleCooldown = new Set();
+
 client.once('clientReady', () => {
   console.log(`🤖 Logged in as ${client.user.tag}!`);
 
-  const tickleCooldown = new Set();
-
-  // === Message listener for phrases (registered once) ===
   client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
@@ -71,31 +70,31 @@ client.once('clientReady', () => {
         await message.reply("🐺 What do you want? I'm busy watching Nyad.");
         setTimeout(() => tickleCooldown.delete(message.author.id), 60 * 1000); // 1 minute
       }
-      return; // stop further phrase processing
+      return; // stop further processing
     }
 
     // === Normal phrases ===
     for (const obj of phrases) {
       for (const trigger of obj.triggers) {
         const triggerLower = trigger.toLowerCase();
+
         if (triggerLower.length <= 2) {
-          // For very short triggers, check exact word match
           if (msgLower.includes(triggerLower)) {
-            message.channel.send(obj.response);
-            return;
+            await message.channel.send(obj.response);
+            return; // respond only once per message
           }
         } else {
-          // For longer triggers, use regex with word boundaries
           const regex = new RegExp(`\\b${triggerLower}\\b`, 'i');
           if (regex.test(message.content)) {
-            message.channel.send(obj.response);
-            return;
+            await message.channel.send(obj.response);
+            return; // respond only once per message
           }
         }
       }
     }
   });
 });
+
 
 
 

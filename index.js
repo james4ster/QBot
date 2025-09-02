@@ -9,7 +9,6 @@ import fs from 'fs';
 const phrases = JSON.parse(fs.readFileSync('./phrases.json', 'utf-8'));
 
 
-
 // === Express Server ===
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -54,36 +53,36 @@ client.login(process.env.DISCORD_BOT_TOKEN)
 // === Bot Ready & Listener ===
 const tickleCooldown = new Set();
 
-client.once('clientReady', () => {
+client.on('clientReady', () => {
   console.log(`🤖 Logged in as ${client.user.tag}!`);
+});
 
-  client.on('messageCreate', async (message) => {
-    if (message.author.bot) return;
+client.on('messageCreate', async (message) => {
+  if (message.author.bot) return;
 
-    const msgLower = message.content.toLowerCase();
+  const msgLower = message.content.toLowerCase();
 
-    // === Handle ticklebot mention / keyword with 1-minute cooldown ===
-    if (message.mentions.has(client.user) || msgLower.includes('ticklebot')) {
-      if (!tickleCooldown.has(message.author.id)) {
-        tickleCooldown.add(message.author.id);
-        await message.reply("🐺 What do you want? I'm busy watching Nyad.");
-        setTimeout(() => tickleCooldown.delete(message.author.id), 60 * 1000); // 1 minute
-      }
-      return; // stop further processing
+  // === Handle ticklebot mention / keyword with 1-minute cooldown ===
+  if (message.mentions.has(client.user) || msgLower.includes('ticklebot')) {
+    if (!tickleCooldown.has(message.author.id)) {
+      tickleCooldown.add(message.author.id);
+      await message.reply("🐺 What do you want? I'm busy watching Nyad.");
+      setTimeout(() => tickleCooldown.delete(message.author.id), 60 * 1000); // 1 minute
     }
+    return; // stop further processing
+  }
 
-    // === Normal phrases ===
-    for (const obj of phrases) {
-      for (const trigger of obj.triggers) {
-        const triggerLower = trigger.toLowerCase();
+  // === Normal phrases ===
+  for (const obj of phrases) {
+    for (const trigger of obj.triggers) {
+      const triggerLower = trigger.toLowerCase();
 
-        // Always use regex with word boundaries so short + long triggers behave correctly
-        const regex = new RegExp(`\\b${triggerLower}\\b`, 'i');
-        if (regex.test(msgLower)) {
-          await message.channel.send(obj.response);
-          return; // respond only once per message
-        }
+      // Always use regex with word boundaries so short + long triggers behave correctly
+      const regex = new RegExp(`\\b${triggerLower}\\b`, 'i');
+      if (regex.test(msgLower)) {
+        await message.channel.send(obj.response);
+        return; // respond only once per message
       }
     }
-  });
+  }
 });

@@ -51,12 +51,14 @@ client.login(process.env.DISCORD_BOT_TOKEN)
 
 
 // === Bot Ready & Listener ===
+// === Bot Ready ===
 const tickleCooldown = new Set();
 
-client.on('clientReady', () => {
+client.once('clientReady', () => {
   console.log(`🤖 Logged in as ${client.user.tag}!`);
 });
 
+// === Message listener ===
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
@@ -76,8 +78,6 @@ client.on('messageCreate', async (message) => {
   for (const obj of phrases) {
     for (const trigger of obj.triggers) {
       const triggerLower = trigger.toLowerCase();
-
-      // Always use regex with word boundaries so short + long triggers behave correctly
       const regex = new RegExp(`\\b${triggerLower}\\b`, 'i');
       if (regex.test(msgLower)) {
         await message.channel.send(obj.response);
@@ -86,3 +86,4 @@ client.on('messageCreate', async (message) => {
     }
   }
 });
+

@@ -63,12 +63,17 @@ client.on('messageCreate', (message) => {
 
   const content = message.content.toLowerCase();
 
+  let responded = false;
+
   for (const obj of phrases) {
     for (const trigger of obj.triggers) {
-      if (content.includes(trigger.toLowerCase())) {
+      if (content.includes(trigger.toLowerCase()) && !responded) {
         message.channel.send(obj.response);
-        return; // respond only once per message
+        responded = true; // mark as responded
+        break; // stop inner loop
       }
     }
+    if (responded) break; // stop outer loop
   }
 });
+

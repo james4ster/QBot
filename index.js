@@ -1,21 +1,11 @@
 // === Imports ===
 import 'dotenv/config';
 import express from 'express';
-import { 
-  Client, 
-  GatewayIntentBits, 
-  Events, 
-  REST, 
-  Routes, 
-  ApplicationCommandOptionType 
-} from 'discord.js';
-
+import { Client, GatewayIntentBits, Events, REST, Routes } from 'discord.js';
 import { google } from 'googleapis';
-import fetch from 'node-fetch';
 import fs from 'fs';
 import { buildRecapForRow } from './recapUtils/buildGameRecap.js';
 
-// === Phrases ===
 const phrases = JSON.parse(fs.readFileSync('./phrases.json', 'utf-8'));
 
 // === Express Server ===
@@ -24,15 +14,12 @@ const PORT = process.env.PORT || 10000;
 app.use(express.json());
 
 app.get('/', (req, res) => res.send('QBot is alive!'));
+
 app.listen(PORT, () => console.log(`🌐 Express server listening on port ${PORT}`));
 
 // === Discord Bot ===
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds, 
-    GatewayIntentBits.GuildMessages, 
-    GatewayIntentBits.MessageContent
-  ]
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
 });
 
 // === Google Sheets Setup ===
@@ -44,13 +31,15 @@ const auth = new google.auth.GoogleAuth({
 const sheets = google.sheets({ version: 'v4', auth });
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 
-// === Message Handling ===
+// === Phrase message tracking ===
 const repliedMessages = new Set();
 
+// === Discord Events ===
 client.once(Events.ClientReady, () => {
   console.log(`🤖 Logged in as ${client.user.tag}!`);
 });
 
+// === Message Handling ===
 client.on('messageCreate', async message => {
   if (message.author.bot || message.webhookId) return;
   if (repliedMessages.has(message.id)) return;
@@ -68,10 +57,7 @@ client.on('messageCreate', async message => {
   // === phrases.json triggers ===
   for (const phraseObj of phrases) {
     const triggers = phraseObj.triggers.map(t => t.toLowerCase());
-    const triggerMatches = triggers.some(trigger => 
-      new RegExp(`\\b${trigger}\\b`, 'i').test(msgLower)
-    );
-
+    const triggerMatches = triggers.some(trigger => new RegExp(`\\b${trigger}\\b`, 'i').test(msgLower));
     if (triggerMatches) {
       repliedMessages.add(message.id);
       await message.channel.send(phraseObj.response);
@@ -90,11 +76,11 @@ const commands = [
       {
         name: 'gamerow',
         description: 'The row number of the game in your sheet',
-        type: ApplicationCommandOptionType.Integer,
-        required: false
-      }
-    ]
-  }
+        type: 4, // INTEGER
+        required: false,
+      },
+    ],
+  },
 ];
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -103,10 +89,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
   try {
     console.log('⚡ Registering /testrecap command...');
     await rest.put(
-      Routes.applicationGuildCommands(
-        process.env.CLIENT_ID, 
-        process.env.GUILD_ID
-      ), 
+      Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
       { body: commands }
     );
     console.log('✅ /testrecap command registered (guild)!');
@@ -121,22 +104,27 @@ client.on('interactionCreate', async interaction => {
 
   if (interaction.commandName === 'testrecap') {
     try {
-      await interaction.deferReply(); // defer once
-      const gameRow = interaction.options.getInteger('gamerow') || 2;
+      // safely defer reply
+      await interaction.deferReply();
+
+      const gameRow = interaction.options.getInteger('gamerow') || 2; // default to row 2
       const recapText = await buildRecapForRow(gameRow);
+
       await interaction.editReply(`✅ Recap generated for row ${gameRow}:\n${recapText}`);
     } catch (err) {
       console.error(err);
-      if (!interaction.replied) {
-        await interaction.reply(`❌ Error generating recap: ${err.message}`);
-      } else {
-        await interaction.editReply(`❌ Error generating recap: ${err.message}`);
+      try {
+        if (interaction.deferred || interaction.replied) {
+          await interaction.editReply(`❌ Error generating recap: ${err.message}`);
+        } else {
+          await interaction.reply(`❌ Error generating recap: ${err.message}`);
+        }
+      } catch (replyErr) {
+        console.error('Failed to send error reply:', replyErr);
       }
     }
   }
 });
 
-
 // === Login to Discord ===
-client.login(process.env.DISCORD_TOKEN)
-  .catch(err => console.error('❌ Discord login failed:', err));
+client.login(process.env.DISCORD_TOKEN).catch(err => console.error('❌ Discord login failed:', err));

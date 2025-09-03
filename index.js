@@ -87,10 +87,10 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN)
   try {
     console.log('⚡ Registering /testrecap command...');
     await rest.put(
-      Routes.applicationCommands(process.env.CLIENT_ID),
+      Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID), // ✅ Guild registration
       { body: commands }
     );
-    console.log('✅ /testrecap command registered!');
+    console.log('✅ /testrecap command registered (guild)!');
   } catch (err) {
     console.error('❌ Error registering command:', err);
   }

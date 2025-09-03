@@ -99,32 +99,35 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 })();
 
 // === Handle /testrecap interactions ===
-client.on('interactionCreate', async interaction => {
-  if (!interaction.isCommand()) return;
+  client.on('interactionCreate', async interaction => {
+    if (!interaction.isCommand()) return;
 
-  if (interaction.commandName === 'testrecap') {
-    try {
-      // safely defer reply
-      await interaction.deferReply();
-
-      const gameRow = interaction.options.getInteger('gamerow') || 2; // default to row 2
-      const recapText = await buildRecapForRow(gameRow);
-
-      await interaction.editReply(`✅ Recap generated for row ${gameRow}:\n${recapText}`);
-    } catch (err) {
-      console.error(err);
+    if (interaction.commandName === 'testrecap') {
       try {
-        if (interaction.deferred || interaction.replied) {
-          await interaction.editReply(`❌ Error generating recap: ${err.message}`);
+        await interaction.deferReply(); // safe to defer once
+
+        const gameRow = interaction.options.getInteger('gamerow') || 2;
+        const recapText = await buildRecapForRow(gameRow);
+
+        if (!recapText || recapText.trim() === "") {
+          await interaction.editReply("❌ Recap failed: no text returned.");
         } else {
+          await interaction.editReply(`✅ Recap generated for row ${gameRow}:\n${recapText}`);
+        }
+      } catch (err) {
+        console.error(err);
+
+        // Only attempt a reply if we haven't already replied
+        if (interaction.deferred && !interaction.replied) {
+          await interaction.editReply(`❌ Error generating recap: ${err.message}`);
+        } else if (!interaction.deferred && !interaction.replied) {
           await interaction.reply(`❌ Error generating recap: ${err.message}`);
         }
-      } catch (replyErr) {
-        console.error('Failed to send error reply:', replyErr);
+        // Otherwise, do nothing; we've already acknowledged this interaction
       }
     }
-  }
-});
+  });
+
 
 // === Login to Discord ===
 client.login(process.env.DISCORD_TOKEN).catch(err => console.error('❌ Discord login failed:', err));

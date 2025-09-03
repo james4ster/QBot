@@ -14,7 +14,6 @@ const PORT = process.env.PORT || 10000;
 app.use(express.json());
 
 app.get('/', (req, res) => res.send('QBot is alive!'));
-
 app.listen(PORT, () => console.log(`🌐 Express server listening on port ${PORT}`));
 
 // === Discord Bot ===
@@ -99,35 +98,31 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 })();
 
 // === Handle /testrecap interactions ===
-  client.on('interactionCreate', async interaction => {
-    if (!interaction.isCommand()) return;
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isChatInputCommand()) return;
+  if (interaction.commandName !== 'testrecap') return;
 
-    if (interaction.commandName === 'testrecap') {
-      try {
-        await interaction.deferReply(); // safe to defer once
+  let gameRow = interaction.options.getInteger('gamerow') || 2; // default to row 2 if blank
 
-        const gameRow = interaction.options.getInteger('gamerow') || 2;
-        const recapText = await buildRecapForRow(gameRow);
+  try {
+    await interaction.deferReply();
 
-        if (!recapText || recapText.trim() === "") {
-          await interaction.editReply("❌ Recap failed: no text returned.");
-        } else {
-          await interaction.editReply(`✅ Recap generated for row ${gameRow}:\n${recapText}`);
-        }
-      } catch (err) {
-        console.error(err);
+    const recapText = await buildRecapForRow(gameRow);
 
-        // Only attempt a reply if we haven't already replied
-        if (interaction.deferred && !interaction.replied) {
-          await interaction.editReply(`❌ Error generating recap: ${err.message}`);
-        } else if (!interaction.deferred && !interaction.replied) {
-          await interaction.reply(`❌ Error generating recap: ${err.message}`);
-        }
-        // Otherwise, do nothing; we've already acknowledged this interaction
-      }
+    if (!recapText) {
+      return await interaction.editReply('❌ Recap failed: no text returned.');
     }
-  });
 
+    await interaction.editReply(`✅ Recap generated for row ${gameRow}:\n${recapText}`);
+  } catch (err) {
+    console.error(err);
+    if (interaction.deferred || interaction.replied) {
+      await interaction.editReply(`❌ Error generating recap: ${err.message}`);
+    } else {
+      await interaction.reply(`❌ Error generating recap: ${err.message}`);
+    }
+  }
+});
 
 // === Login to Discord ===
 client.login(process.env.DISCORD_TOKEN).catch(err => console.error('❌ Discord login failed:', err));

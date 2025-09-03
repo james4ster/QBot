@@ -5,6 +5,8 @@ import { Client, GatewayIntentBits } from 'discord.js';
 import { google } from 'googleapis';
 import fetch from 'node-fetch';
 import fs from 'fs';
+import { buildRecapForRow } from './recapUtils/buildGameRecap.js';
+import { REST, Routes } from 'discord.js';
 
 const phrases = JSON.parse(fs.readFileSync('./phrases.json', 'utf-8'));
 
@@ -59,6 +61,55 @@ client.on('messageCreate', async message => {
       await message.channel.send(phraseObj.response);
       setTimeout(() => repliedMessages.delete(message.id), 10 * 60 * 1000);
       break; // Only respond once per message
+    }
+  }
+});
+
+// === Register /testrecap slash command ===
+const commands = [
+  {
+    name: 'testrecap',
+    description: 'Generate a test recap for a single game',
+    options: [
+      {
+        name: 'gamerow',
+        description: 'The row number of the game in your sheet',
+        type: 4, // INTEGER
+        required: false
+      }
+    ]
+  }
+];
+
+const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN);
+
+(async () => {
+  try {
+    console.log('⚡ Registering /testrecap command...');
+    await rest.put(
+      Routes.applicationCommands(process.env.CLIENT_ID),
+      { body: commands }
+    );
+    console.log('✅ /testrecap command registered!');
+  } catch (err) {
+    console.error('❌ Error registering command:', err);
+  }
+})();
+
+// === Handle /testrecap interactions ===
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isCommand()) return;
+
+  if (interaction.commandName === 'testrecap') {
+    await interaction.deferReply();
+
+    try {
+      const gameRow = interaction.options.getInteger('gamerow') || 2; // default to row 2
+      const recapText = await buildRecapForRow(gameRow);
+      await interaction.editReply(`✅ Recap generated for row ${gameRow}:\n${recapText}`);
+    } catch (err) {
+      console.error(err);
+      await interaction.editReply(`❌ Error generating recap: ${err.message}`);
     }
   }
 });

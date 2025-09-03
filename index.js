@@ -117,21 +117,25 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
 // === Handle /testrecap interactions ===
 client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
+  if (!interaction.isCommand()) return;
 
   if (interaction.commandName === 'testrecap') {
-    await interaction.deferReply();
-
     try {
-      const gameRow = interaction.options.getInteger('gamerow') ?? 2; // default to row 2
+      await interaction.deferReply(); // defer once
+      const gameRow = interaction.options.getInteger('gamerow') || 2;
       const recapText = await buildRecapForRow(gameRow);
       await interaction.editReply(`✅ Recap generated for row ${gameRow}:\n${recapText}`);
     } catch (err) {
-      console.error('❌ Error in /testrecap:', err);
-      await interaction.editReply(`❌ Error generating recap: ${err.message}`);
+      console.error(err);
+      if (!interaction.replied) {
+        await interaction.reply(`❌ Error generating recap: ${err.message}`);
+      } else {
+        await interaction.editReply(`❌ Error generating recap: ${err.message}`);
+      }
     }
   }
 });
+
 
 // === Login to Discord ===
 client.login(process.env.DISCORD_TOKEN)

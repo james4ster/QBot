@@ -22,6 +22,8 @@ Make it entertaining, like a sports news blurb.
       body: JSON.stringify({
         model: "gpt-5-mini",
         messages: [{ role: "user", content: prompt }],
+        max_tokens: 500,      // limit the length
+        temperature: 0.7,     // optional: makes it a bit more creative
       }),
     });
 

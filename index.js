@@ -1,7 +1,8 @@
 // === Imports ===
 import 'dotenv/config';
 import express from 'express';
-import { Client, GatewayIntentBits } from 'discord.js';
+import { Client, GatewayIntentBits, Events } from 'discord.js';
+
 import { google } from 'googleapis';
 import fetch from 'node-fetch';
 import fs from 'fs';
@@ -81,7 +82,7 @@ const commands = [
   }
 ];
 
-const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN);
+const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
 (async () => {
   try {
@@ -115,5 +116,5 @@ client.on('interactionCreate', async interaction => {
 });
 
 // === Login to Discord ===
-client.login(process.env.DISCORD_BOT_TOKEN)
+client.login(process.env.DISCORD_TOKEN)
   .catch(err => console.error('❌ Discord login failed:', err));

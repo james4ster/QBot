@@ -1,5 +1,9 @@
 import fetch from "node-fetch";
 
+/**
+ * Generate a concise, funny hockey recap using OpenRouter.
+ * Always returns a string, even if the API fails.
+ */
 export async function generateRecapText(gameData, highlights) {
   const prompt = `
 Generate a concise, funny hockey recap using this info:
@@ -22,20 +26,41 @@ Make it entertaining, like a sports news blurb.
       body: JSON.stringify({
         model: "gpt-5-mini",
         messages: [{ role: "user", content: prompt }],
-        max_tokens: 500,      // limit the length
-        temperature: 0.7,     // optional: makes it a bit more creative
+        max_tokens: 500,
+        temperature: 0.7,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`OpenRouter API error: ${response.status} ${errorText}`);
+      console.error(`❌ OpenRouter API error: ${response.status} ${errorText}`);
+      return "No recap text could be generated due to API error.";
     }
 
     const data = await response.json();
-    return data.choices[0].message.content.trim();
+
+    // Defensive check: ensure content exists
+    const content = data.choices?.[0]?.message?.content?.trim();
+    if (!content) {
+      console.warn("⚠️ OpenRouter returned no content:", JSON.stringify(data, null, 2));
+      return "No recap text could be generated at this time.";
+    }
+
+    return content;
   } catch (err) {
     console.error("❌ Recap generation failed:", err);
-    throw err;
+    return "No recap text could be generated due to an internal error.";
   }
+}
+
+/**
+ * Optional wrapper: retry once if it fails
+ */
+export async function safeGenerateRecapText(gameData, highlights) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const recap = await generateRecapText(gameData, highlights);
+    if (recap && !recap.startsWith("No recap text")) return recap;
+    console.warn(`Retrying recap generation (attempt ${attempt + 1})`);
+  }
+  return "No recap text could be generated after multiple attempts.";
 }

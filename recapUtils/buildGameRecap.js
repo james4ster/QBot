@@ -75,6 +75,9 @@ export async function buildRecapForRow(gameRow = 2) {
 
   await buildGameRecap(gameData, './recapUtils/output/test_game.png', highlights);
 
-  const recapText = await generateRecapText(gameData, highlights);
+  import { safeGenerateRecapText } from './recapLLM.js';
+
+  const recapText = await safeGenerateRecapText(gameData, highlights);
+  
   return recapText;
 }

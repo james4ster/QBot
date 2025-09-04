@@ -8,6 +8,10 @@ import { buildRecapForRow } from './recapUtils/buildGameRecap.js';
 
 const phrases = JSON.parse(fs.readFileSync('./phrases.json', 'utf-8'));
 
+// === Team and Emoji Mappings ===
+import { abbrToFullName, teamEmojiMap } from './mappings.js';
+
+
 // === Express Server ===
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -80,6 +84,26 @@ const commands = [
       },
     ],
   },
+
+// === Register /matchup slash command (2 parameters) ===
+  {
+    name: 'matchup',
+    description: 'Compare two team stats',
+    options: [
+      {
+        name: 'team1',
+        description: 'First team abbreviation (e.g., SUP, BNX)',
+        type: 3, // STRING
+        required: true
+      },
+      {
+        name: 'team2',
+        description: 'Second team abbreviation (e.g., THS, NCJ)',
+        type: 3, // STRING
+        required: true
+      }
+    ]
+  }
 ];
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -101,6 +125,8 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
+
+  // === testrecap /command ===
   if (interaction.commandName === 'testrecap') {
     try {
       // 1️⃣ Defer immediately to avoid timeout
@@ -121,8 +147,118 @@ client.on('interactionCreate', async (interaction) => {
       await interaction.editReply("❌ Error generating recap");
     }
   }
+
+  // === matchup /command ===
+  // === matchup /command ===
+  if (interaction.commandName === 'matchup') {
+    try {
+      await interaction.deferReply();
+
+      const team1Abbr = interaction.options.getString('team1').toUpperCase();
+      const team2Abbr = interaction.options.getString('team2').toUpperCase();
+
+      const team1Full = abbrToFullName[team1Abbr];
+      const team2Full = abbrToFullName[team2Abbr];
+
+      if (!team1Full || !team2Full) {
+        return interaction.editReply("❌ One or both team abbreviations are invalid.");
+      }
+
+      const stats = await getTeamStats();
+      const team1Stats = stats[team1Full];
+      const team2Stats = stats[team2Full];
+
+      if (!team1Stats || !team2Stats) {
+        return interaction.editReply("❌ Stats not found for one or both teams.");
+      }
+
+      const comparison = compareTeams(team1Stats, team2Stats);
+
+      const team1Emoji = teamEmojiMap[team1Abbr] || '';
+      const team2Emoji = teamEmojiMap[team2Abbr] || '';
+
+      // Build a nicely lined-up table with emojis as headers
+      let table = "Stat       | " + team1Emoji + " | " + team2Emoji + "\n";
+      table += "---------------------------\n";
+
+      Object.keys(comparison).forEach(stat => {
+        const t1 = comparison[stat].t1.toString().padEnd(5, ' ');
+        const t2 = comparison[stat].t2.toString().padEnd(5, ' ');
+        table += `${stat.padEnd(10, ' ')} | ${t1} | ${t2}\n`;
+      });
+
+      await interaction.editReply({
+        content: "```\n" + table + "```"
+      });
+
+    } catch (err) {
+      console.error(err);
+      await interaction.editReply("❌ Error generating matchup.");
+    }
+  }
+
 });
 
+
+
+// Fetch TeamLeaders stats
+async function getTeamStats() {
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'TeamLeaders!A1:AZ100' // adjust if needed
+  });
+
+  const rows = res.data.values;
+  if (!rows || rows.length < 2) return {};
+
+  const headers = rows[0];
+  const data = {};
+
+  rows.slice(1).forEach(row => {
+    const teamName = row[0];
+    data[teamName] = {};
+    headers.forEach((header, i) => {
+      const val = parseFloat(row[i]);
+      data[teamName][header] = isNaN(val) ? row[i] : val;
+    });
+  });
+
+  return data;
+};
+
+// Compare two teams
+function compareTeams(team1Stats, team2Stats) {
+  const statPreference = {
+    'W%': 'higher',
+    'GF/G': 'higher',
+    'GA/G': 'lower',
+    'GF': 'higher',
+    'GA': 'lower'
+    // Add more if desired
+  };
+
+  const comparison = {};
+  Object.keys(statPreference).forEach(stat => {
+    const t1 = team1Stats[stat];
+    const t2 = team2Stats[stat];
+
+    if (t1 == null || t2 == null) return;
+
+    if (t1 === t2) {
+      comparison[stat] = { t1, t2, tie: true };
+    } else {
+      const t1Wins = (statPreference[stat] === 'higher' && t1 > t2) ||
+                     (statPreference[stat] === 'lower' && t1 < t2);
+      comparison[stat] = {
+        t1: t1Wins ? `**${t1}**` : t1,
+        t2: !t1Wins ? `**${t2}**` : t2,
+        tie: false
+      };
+    }
+  });
+
+  return comparison;
+}
 
 // === Login to Discord ===
 client.login(process.env.DISCORD_TOKEN).catch(err => console.error('❌ Discord login failed:', err));

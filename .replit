@@ -1,5 +1,5 @@
 entrypoint = "index.js"
-modules = ["nodejs-22", "python-3.11"]
+modules = ["nodejs-22"]
 hidden = [".config", "package-lock.json"]
 
 [gitHubImport]
@@ -7,20 +7,8 @@ requiredFiles = [".replit", "replit.nix", "package.json", "package-lock.json"]
 
 [nix]
 channel = "stable-24_11"
-packages = ["cairo", "giflib", "libjpeg_turbo", "libossp_uuid", "opensshWithKerberos", "pango", "triton-llvm"]
 
 [deployment]
 run = ["node", "index.js"]
 deploymentTarget = "autoscale"
 ignorePorts = false
-
-[[ports]]
-localPort = 3000
-externalPort = 80
-
-[[ports]]
-localPort = 10000
-externalPort = 3000
-
-[agent]
-expertMode = true

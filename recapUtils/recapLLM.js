@@ -1,51 +1,54 @@
-import fetch from "node-fetch";
+// recapLLM.js
+import 'dotenv/config';
 
-export async function generateRecapText(gameData) {
-  const { homeTeam, awayTeam, homeScore, awayScore, highlights } = gameData;
+export async function generateRecapText(gameData, highlights = []) {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    console.error('❌ OPENROUTER_API_KEY not set.');
+    return '❌ API key missing.';
+  }
 
-  // Only keep first 3–5 highlights to avoid prompt overload
-  const shortHighlights = highlights.slice(0, 5)
-    .map(h => `- ${h}`)
-    .join("\n");
+  const { homeTeam, awayTeam, homeScore, awayScore } = gameData;
 
+  // simple prompt with score and highlights
   const prompt = `
-Write a 4-5 sentence sarcastic hockey game recap.
-Do NOT include any reasoning, commentary about the task, or extra notes.
-Include team names, final score, and highlights clearly.
-Use only the information provided below:
+Write a short, funny, chaotic recap of this NHL '95 game:
 
-Home Team: ${homeTeam} (${homeScore})
-Away Team: ${awayTeam} (${awayScore})
-Highlights:
-${shortHighlights}
+${homeTeam} ${homeScore} vs ${awayTeam} ${awayScore}
+
+Include the following highlights if possible:
+${highlights.map(h => `- ${h.team}: ${h.goalScorer} (${h.assist1 || 'no assist'}, ${h.assist2 || 'no assist'}) [Period ${h.period}, ${h.time}]`).join('\n')}
+
+Keep it under 150 words.
+Use humor, sarcasm, and a hockey blogger voice.
 `;
 
   try {
-    const response = await fetch("https://api.openrouter.com/v1/chat/completions", {
-      method: "POST",
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
       headers: {
-        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json"
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "openai/gpt-5-mini",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 1200,   // Increased limit
-        temperature: 0.7
-      })
+        model: 'openai/gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.9,
+        max_tokens: 300,
+      }),
     });
 
-    const data = await response.json();
-
-    const content = data.choices?.[0]?.message?.content;
-
-    if (!content || content.trim() === "") {
-      return "No recap could be generated at this time.";
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('OpenRouter API Error:', error);
+      return '🚨 Could not generate recap.';
     }
 
-    return content.trim();
+    const data = await response.json();
+    return data.choices[0].message.content.trim();
+
   } catch (err) {
-    console.error("Error generating recap:", err);
-    return "Error generating recap.";
+    console.error('Request failed:', err);
+    return '❌ Recap generation failed due to network error.';
   }
 }

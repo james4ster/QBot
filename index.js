@@ -98,31 +98,31 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 })();
 
 // === Handle /testrecap interactions ===
-client.on('interactionCreate', async interaction => {
+client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
-  if (interaction.commandName !== 'testrecap') return;
 
-  let gameRow = interaction.options.getInteger('gamerow') || 2; // default to row 2 if blank
+  if (interaction.commandName === 'testrecap') {
+    try {
+      // 1️⃣ Defer immediately to avoid timeout
+      await interaction.deferReply();
 
-  try {
-    await interaction.deferReply();
+      console.log("Building recap for game...");
 
-    const recapText = await buildRecapForRow(gameRow);
+      // 2️⃣ Generate recap
+      const recapText = await buildRecapForRow(gameData);
 
-    if (!recapText) {
-      return await interaction.editReply('❌ Recap failed: no text returned.');
-    }
-
-    await interaction.editReply(`✅ Recap generated for row ${gameRow}:\n${recapText}`);
-  } catch (err) {
-    console.error(err);
-    if (interaction.deferred || interaction.replied) {
-      await interaction.editReply(`❌ Error generating recap: ${err.message}`);
-    } else {
-      await interaction.reply(`❌ Error generating recap: ${err.message}`);
+      // 3️⃣ Reply
+      await interaction.editReply({
+        content: recapText,
+        files: ['./recapUtils/output/test_game.png'], // optional
+      });
+    } catch (err) {
+      console.error(err);
+      await interaction.editReply("❌ Error generating recap");
     }
   }
 });
+
 
 // === Login to Discord ===
 client.login(process.env.DISCORD_TOKEN).catch(err => console.error('❌ Discord login failed:', err));

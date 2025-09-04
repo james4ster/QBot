@@ -12,7 +12,7 @@ const auth = new google.auth.GoogleAuth({
 
 const sheets = google.sheets({ version: 'v4', auth });
 
-// --- Fetch basic game data ---
+// --- Fetch game data from RawData ---
 async function fetchGameData(gameRow = 2) {
   const range = `RawData!A${gameRow}:AP${gameRow}`;
   const res = await sheets.spreadsheets.values.get({
@@ -24,47 +24,43 @@ async function fetchGameData(gameRow = 2) {
   if (!row) throw new Error('No data found in row ' + gameRow);
 
   return {
-    gameID: row[1],       // Column B = GameID
+    gameID: row[1],       // Column B
     homeTeam: row[7],     // Column H
     awayTeam: row[8],     // Column I
     homeScore: row[41],   // Column AP
     awayScore: row[13],   // Column N
-    players: [],          // leave empty for now
+    players: [],
   };
 }
 
-// --- Fetch scoring highlights for a game ---
+// --- Fetch scoring highlights ---
 async function fetchScoringData(gameID) {
-  const range = `RawScoring!A2:M`; // adjust as needed
+  const range = `RawScoring!A2:M`;
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
     range,
   });
 
   const rows = res.data.values || [];
-  // filter rows for this game
-  const scoringRows = rows
-    .filter(row => row[5] == gameID) // column F = GameID
+  return rows
+    .filter(row => row[5] == gameID) // Column F = GameID
     .map(row => ({
-      team: row[9],        // Column J = TEAM
-      goalScorer: row[10], // Column K = GOALscorer
-      assist1: row[11],    // Column L = ASSIST1
-      assist2: row[12],    // Column M = ASSIST2
-      period: row[6],      // Column G = Period
-      time: row[7],        // Column H = TIME
+      team: row[9],        // Column J
+      goalScorer: row[10], // Column K
+      assist1: row[11],    // Column L
+      assist2: row[12],    // Column M
+      period: row[6],      // Column G
+      time: row[7],        // Column H
     }));
-
-  return scoringRows;
 }
 
-// --- Build the recap image (placeholder logic for now) ---
+// --- Build recap (console/image placeholder) ---
 async function buildGameRecap(gameData, outputPath, highlights) {
   console.log('Building recap for:', gameData.homeTeam, 'vs', gameData.awayTeam);
   console.log('Score:', gameData.homeScore, '-', gameData.awayScore);
   console.log('Highlights:');
   highlights.forEach(h => console.log(' -', h));
   console.log(`Recap image would be saved to: ${outputPath}`);
-  // TODO: replace with actual image generation code
 }
 
 // --- Exported function for Discord slash command ---
@@ -75,9 +71,6 @@ export async function buildRecapForRow(gameRow = 2) {
 
   await buildGameRecap(gameData, './recapUtils/output/test_game.png', highlights);
 
-  
-
   const recapText = await generateRecapText(gameData, highlights);
-  
   return recapText;
 }

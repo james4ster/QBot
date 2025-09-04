@@ -149,7 +149,6 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   // === matchup /command ===
-  // === matchup /command ===
   if (interaction.commandName === 'matchup') {
     try {
       await interaction.deferReply();
@@ -157,16 +156,10 @@ client.on('interactionCreate', async (interaction) => {
       const team1Abbr = interaction.options.getString('team1').toUpperCase();
       const team2Abbr = interaction.options.getString('team2').toUpperCase();
 
-      const team1Full = abbrToFullName[team1Abbr];
-      const team2Full = abbrToFullName[team2Abbr];
-
-      if (!team1Full || !team2Full) {
-        return interaction.editReply("❌ One or both team abbreviations are invalid.");
-      }
-
+     
       const stats = await getTeamStats();
-      const team1Stats = stats[team1Full];
-      const team2Stats = stats[team2Full];
+      const team1Stats = stats[team1Abbr];
+      const team2Stats = stats[team2Abbr];
 
       if (!team1Stats || !team2Stats) {
         return interaction.editReply("❌ Stats not found for one or both teams.");
@@ -205,26 +198,33 @@ client.on('interactionCreate', async (interaction) => {
 async function getTeamStats() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'TeamLeaders!A1:AZ100' // adjust if needed
+    range: 'RawTeam!D3:AV30', // adjust row limit if needed
   });
 
   const rows = res.data.values;
-  if (!rows || rows.length < 2) return {};
+  if (!rows || rows.length < 1) return {};
 
-  const headers = rows[0];
+  // First row in this range is actually row 3 in the sheet
+  // We'll manually define headers for the stats columns
+  const headers = [
+    'GP','W','L','T','OTL','PTS','W%','GF','GF/G','GA','GA/G',
+    'SH','S/G','SH%','SHA','SA/G','SD','PPG','PP','PP%',
+    'PK','PKGA','PK%','SHG','FOW','FO','FO%','H','H/G','HA','HD',
+    'BAG','BA','BA%','1xG','1xA','1x%','PS','PSA','PS%'
+  ];
+
   const data = {};
-
-  rows.slice(1).forEach(row => {
-    const teamName = row[0];
-    data[teamName] = {};
+  rows.forEach(row => {
+    const abbr = row[0]; // column D in sheet
+    data[abbr] = {};
     headers.forEach((header, i) => {
-      const val = parseFloat(row[i]);
-      data[teamName][header] = isNaN(val) ? row[i] : val;
+      const val = parseFloat(row[i + 3]); // first stat column starts at H (index 3 in this range)
+      data[abbr][header] = isNaN(val) ? row[i + 3] : val;
     });
   });
 
   return data;
-};
+}
 
 // Compare two teams
 function compareTeams(team1Stats, team2Stats) {

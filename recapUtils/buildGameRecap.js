@@ -1,6 +1,6 @@
 import { google } from 'googleapis';
 import { generateHighlights } from './generateHighlights.js';
-import { safeGenerateRecapText } from './recapLLM.js';
+import { generateRecapText } from './recapLLM.js';
 
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
@@ -77,7 +77,7 @@ export async function buildRecapForRow(gameRow = 2) {
 
   
 
-  const recapText = await safeGenerateRecapText(gameData, highlights);
+  const recapText = await generateRecapText(gameData, highlights);
   
   return recapText;
 }

@@ -40,9 +40,13 @@ Make it entertaining, like a sports news blurb.
     const data = await response.json();
 
     // Defensive check: ensure content exists
-    const content = data.choices?.[0]?.message?.content?.trim();
+    const content =
+      data.choices?.[0]?.message?.content?.trim() ||
+      data.choices?.[0]?.reasoning?.summary || // fallback if reasoning exists
+      null;
+
     if (!content) {
-      console.warn("⚠️ OpenRouter returned no content:", JSON.stringify(data, null, 2));
+      console.warn("⚠️ OpenRouter returned no usable content:", JSON.stringify(data, null, 2));
       return "No recap text could be generated at this time.";
     }
 
@@ -51,16 +55,4 @@ Make it entertaining, like a sports news blurb.
     console.error("❌ Recap generation failed:", err);
     return "No recap text could be generated due to an internal error.";
   }
-}
-
-/**
- * Optional wrapper: retry once if it fails
- */
-export async function safeGenerateRecapText(gameData, highlights) {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const recap = await generateRecapText(gameData, highlights);
-    if (recap && !recap.startsWith("No recap text")) return recap;
-    console.warn(`Retrying recap generation (attempt ${attempt + 1})`);
-  }
-  return "No recap text could be generated after multiple attempts.";
 }

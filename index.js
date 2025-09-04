@@ -9,7 +9,7 @@ import { buildRecapForRow } from './recapUtils/buildGameRecap.js';
 const phrases = JSON.parse(fs.readFileSync('./phrases.json', 'utf-8'));
 
 // === Team and Emoji Mappings ===
-import { abbrToFullName, teamEmojiMap } from './mappings.js';
+import { abbrToFullName, teamEmojiMap } from './teamMappings.js';
 
 
 // === Express Server ===

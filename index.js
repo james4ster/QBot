@@ -117,10 +117,8 @@ client.on('interactionCreate', async (interaction) => {
   } */
 
   // ==== /matchup ====
-  // ==== /matchup ====
   if (interaction.commandName === 'matchup') {
     try {
-      // ✅ Immediately defer to avoid interaction timeout
       await interaction.deferReply();
 
       const team1Abbr = interaction.options.getString('team1').toUpperCase();
@@ -134,11 +132,10 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.editReply("❌ Stats not found for one or both teams.");
       }
 
-      // ✅ Emojis
-      const team1Emoji = teamEmojiMap[team1Abbr] || '';
-      const team2Emoji = teamEmojiMap[team2Abbr] || '';
+      // ✅ Fetch emojis from teamEmojiMap
+      const team1Emoji = teamEmojiMap[team1Abbr] || team1Abbr;
+      const team2Emoji = teamEmojiMap[team2Abbr] || team2Abbr;
 
-      // ✅ Stats to display
       const statsToCompare = [
         'GP','W','L','T','OTL','PTS','W%','GF','GF/G','GA','GA/G',
         'SH','S/G','SH%','SHA','SA/G','SD','FOW','FO','FO%',
@@ -146,44 +143,47 @@ client.on('interactionCreate', async (interaction) => {
         'PS','PSA','PS%'
       ];
 
-      // ✅ Fixed-width padding function
+      // ✅ Add emojis above the code block
+      let message = `${team1Emoji}       ${team2Emoji}\n\`\`\`\n`;
+
+      // Fixed-width padding helper
       const pad = (str, len = 7) => str.toString().padEnd(len, ' ');
 
-      // Build message
-      let message = '';
+      // Column widths
+      const statColWidth = 7;
+      const valueColWidth = 7;
 
-      // Add emojis **above the columns**
-      message += `${pad('', 7)}${pad(team1Emoji)}${pad(team2Emoji)}\n`;
+      // Header: team abbreviations inside code block
+      message += `${' '.repeat(statColWidth)}| ${team1Abbr.padEnd(valueColWidth)}| ${team2Abbr.padEnd(valueColWidth)}\n`;
 
-      // Add code block for alignment
-      message += '```\n';
+      // Divider line
+      message += `${'-'.repeat(statColWidth)}|${'-'.repeat(valueColWidth + 1)}|${'-'.repeat(valueColWidth + 1)}\n`;
 
-      // Add team abbreviations inside the block
-      message += `${pad('', 5)}| ${pad(team1Abbr)}| ${pad(team2Abbr)}\n`;
-
-
-      // Add stats rows
+      // Stats
       statsToCompare.forEach(stat => {
-        const t1 = team1Stats[stat] ?? '-';
-        const t2 = team2Stats[stat] ?? '-';
+        let t1 = team1Stats[stat] ?? '-';
+        let t2 = team2Stats[stat] ?? '-';
         message += `${pad(stat)} | ${pad(t1)} | ${pad(t2)}\n`;
       });
 
-      message += '```';
+      message += '```'; // close code block
 
-      // ✅ Send final reply
       await interaction.editReply(message);
 
     } catch (err) {
-      console.error('❌ /matchup command error:', err);
-      // ✅ Ensure we respond if the interaction has not been replied
-      if (interaction.deferred || interaction.replied) {
-        await interaction.editReply("❌ Error generating matchup stats.");
-      } else {
-        await interaction.reply("❌ Error generating matchup stats.");
+      console.error(err);
+      try { // avoid "InteractionNotReplied" errors
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply("❌ Error generating matchup stats.");
+        } else {
+          await interaction.editReply("❌ Error generating matchup stats.");
+        }
+      } catch (err2) {
+        console.error('Error sending fallback reply:', err2);
       }
     }
   }
+
 
 
 

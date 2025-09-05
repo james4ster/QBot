@@ -142,7 +142,7 @@ client.on('interactionCreate', async (interaction) => {
         'PS','PSA','PS%'
       ];
 
-      // Put emojis **above** code block
+      // Put emojis above the code block
       let message = `${' '.repeat(10)}${team1Emoji}${' '.repeat(7)}${team2Emoji}\n\n`;
 
       // Start code block for stats
@@ -154,6 +154,7 @@ client.on('interactionCreate', async (interaction) => {
         let t1 = team1Stats[stat] ?? '-';
         let t2 = team2Stats[stat] ?? '-';
 
+        // No bolding
         message += `${pad(stat)} | ${pad(t1)} | ${pad(t2)}\n`;
       });
 
@@ -166,6 +167,7 @@ client.on('interactionCreate', async (interaction) => {
       await interaction.editReply("❌ Error generating matchup stats.");
     }
   }
+
 
 
 });

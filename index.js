@@ -131,7 +131,7 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.editReply("❌ Stats not found for one or both teams.");
       }
 
-      // ✅ Fetch emojis from teamEmojiMap using abbreviations
+      // Fetch emojis from teamEmojiMap using abbreviations
       const team1Emoji = teamEmojiMap[team1Abbr] || team1Abbr;
       const team2Emoji = teamEmojiMap[team2Abbr] || team2Abbr;
 
@@ -142,8 +142,9 @@ client.on('interactionCreate', async (interaction) => {
         'PS','PSA','PS%'
       ];
 
-      // ✅ Header: only emojis
-      let message = `${team1Emoji.padEnd(10, ' ')}${team2Emoji}\n\n`;
+      // Build header with emojis above their respective columns
+      let message = "```\n"; // start code block
+      message += `${' '.repeat(10)}${team1Emoji}${' '.repeat(7)}${team2Emoji}\n\n`;
 
       // Fixed-width padding for stats
       const pad = (str, len = 7) => str.toString().padEnd(len, ' ');
@@ -166,6 +167,8 @@ client.on('interactionCreate', async (interaction) => {
         message += `${pad(stat)} | ${pad(t1Bold)} | ${pad(t2Bold)}\n`;
       });
 
+      message += "```"; // close code block
+
       await interaction.editReply(message);
 
     } catch (err) {
@@ -173,6 +176,7 @@ client.on('interactionCreate', async (interaction) => {
       await interaction.editReply("❌ Error generating matchup stats.");
     }
   }
+
 });
 
 // === Get Team Stats ===

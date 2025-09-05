@@ -114,54 +114,71 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   // ==== /matchup ====
-  if (interaction.commandName === 'matchup') {
-    try {
-      await interaction.deferReply();
+// ==== /matchup ====
+if (interaction.commandName === 'matchup') {
+  try {
+    await interaction.deferReply();
 
-      const team1Abbr = interaction.options.getString('team1').toUpperCase();
-      const team2Abbr = interaction.options.getString('team2').toUpperCase();
+    const team1Abbr = interaction.options.getString('team1').toUpperCase();
+    const team2Abbr = interaction.options.getString('team2').toUpperCase();
 
-      const stats = await getTeamStats();
-      const team1Stats = stats[team1Abbr];
-      const team2Stats = stats[team2Abbr];
+    const stats = await getTeamStats();
+    const team1Stats = stats[team1Abbr];
+    const team2Stats = stats[team2Abbr];
 
-      if (!team1Stats || !team2Stats) {
-        return interaction.editReply("❌ Stats not found for one or both teams.");
+    if (!team1Stats || !team2Stats) {
+      return interaction.editReply("❌ Stats not found for one or both teams.");
+    }
+
+    // Fetch emojis from Google Sheets BSB Settings
+    const emojiMap = await getDiscordEmojiMap();
+    const team1Emoji = emojiMap[team1Abbr] || team1Abbr;
+    const team2Emoji = emojiMap[team2Abbr] || team2Abbr;
+
+    const statsToCompare = [
+      'GP','W','L','T','OTL','PTS','W%','GF','GF/G','GA','GA/G',
+      'SH','S/G','SH%','SHA','SA/G','SD','FOW','FO','FO%',
+      'H','H/G','HA','HD','BAG','BA','BA%','1xG','1xA','1x%',
+      'PS','PSA','PS%'
+    ];
+
+    // Build pretty Discord message
+    let message = `**${team1Emoji} ${team1Abbr}** | **${team2Emoji} ${team2Abbr}**\n`;
+
+    statsToCompare.forEach(stat => {
+      let t1 = team1Stats[stat] ?? '-';
+      let t2 = team2Stats[stat] ?? '-';
+
+      // Determine which stat is "better"
+      let t1Bold = t1, t2Bold = t2;
+
+      // Skip stats that are not numeric for bold comparison
+      if (!isNaN(parseFloat(t1)) && !isNaN(parseFloat(t2))) {
+        if (stat === 'L' || stat === 'GA' || stat === 'GA/G' || stat === 'SA/G' || stat === 'SD') {
+          // For stats where lower is better
+          if (parseFloat(t1) < parseFloat(t2)) t1Bold = `**${t1}**`;
+          else if (parseFloat(t2) < parseFloat(t1)) t2Bold = `**${t2}**`;
+        } else {
+          // For stats where higher is better
+          if (parseFloat(t1) > parseFloat(t2)) t1Bold = `**${t1}**`;
+          else if (parseFloat(t2) > parseFloat(t1)) t2Bold = `**${t2}**`;
+        }
       }
 
-      // Fetch emojis from Google Sheets BSB Settings
-      const emojiMap = await getDiscordEmojiMap();
-      const team1Emoji = emojiMap[team1Abbr] || team1Abbr;
-      const team2Emoji = emojiMap[team2Abbr] || team2Abbr;
+      // Append stat row
+      message += `${stat.padEnd(6)} | ${t1Bold.toString().padEnd(6)} | ${t2Bold}\n`;
+    });
 
-      const statsToCompare = [
-        'GP','W','L','T','OTL','PTS','W%','GF','GF/G','GA','GA/G',
-        'SH','S/G','SH%','SHA','SA/G','SD','FOW','FO','FO%',
-        'H','H/G','HA','HD','BAG','BA','BA%','1xG','1xA','1x%',
-        'PS','PSA','PS%'
-      ];
+    await interaction.editReply(message);
 
-      // Build the table for Discord
-      let tableHeader = `${team1Emoji} ${team1Abbr} | ${team2Emoji} ${team2Abbr}`;
-      let table = "```"; // start code block
-
-      statsToCompare.forEach(stat => {
-        const t1 = team1Stats[stat] ?? '-';
-        const t2 = team2Stats[stat] ?? '-';
-        table += `\n${stat.padEnd(6)} | ${t1.toString().padEnd(6)} | ${t2}`;
-      });
-
-      table += "\n```";
-
-      await interaction.editReply(`${tableHeader}\n${table}`);
-    } catch (err) {
-      console.error(err);
-      if (!interaction.replied) await interaction.editReply("❌ Error fetching matchup stats");
-    }
+  } catch (err) {
+    console.error(err);
+    await interaction.editReply("❌ Error generating matchup stats.");
   }
-});
+}
 
-// === Get Team Stats ===
+
+
 // === Get Team Stats ===
 async function getTeamStats() {
   const res = await sheets.spreadsheets.values.get({

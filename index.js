@@ -176,7 +176,7 @@ client.on('interactionCreate', async (interaction) => {
       });
 
       message += `\nCategory Leader:\n`;
-      message += `${team1Abbr} leads in: ${team1Wins.join(', ') || 'None'}\n`;
+      message += `${team1Abbr} leads in: ${team1Wins.join(', ') || 'None'}\n\n`;
       message += `${team2Abbr} leads in: ${team2Wins.join(', ') || 'None'}\n`;
 
       // Wrap entire block in code block

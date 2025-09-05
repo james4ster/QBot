@@ -96,7 +96,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 })();
 
 // === Interaction Handling ===
-client.on('interactionCreate', async (interaction) => {
+client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
   // ==== /testrecap ====
@@ -151,45 +151,15 @@ client.on('interactionCreate', async (interaction) => {
         message += `${pad(stat)} | ${pad(t1)} | ${pad(t2)}\n`;
       });
 
-      // ===== Head-to-Head Records =====
-      const seasonResults = await getHeadToHeadResults(team1Abbr, team2Abbr);
-
-      let t1W=0, t1L=0, t1T=0, t1OTL=0;
-      let t2W=0, t2L=0, t2T=0, t2OTL=0;
-
-      seasonResults.forEach(game => {
-        const t1IsHome = game.Home === team1Abbr;
-        const t1IsAway = game.Away === team1Abbr;
-        const t2IsHome = game.Home === team2Abbr;
-        const t2IsAway = game.Away === team2Abbr;
-
-        if (game.HomeScore > game.AwayScore) {
-          if (t1IsHome) t1W++; else if (t1IsAway) t1L++;
-          if (t2IsHome) t2W++; else if (t2IsAway) t2L++;
-        } else if (game.AwayScore > game.HomeScore) {
-          if (t1IsAway) t1W++; else if (t1IsHome) t1L++;
-          if (t2IsAway) t2W++; else if (t2IsHome) t2L++;
-        } else {
-          if (t1IsHome || t1IsAway) t1T++;
-          if (t2IsHome || t2IsAway) t2T++;
-        }
-
-        if (game.OT === 'OTL') {
-          if (t1IsHome || t1IsAway) t1OTL++;
-          if (t2IsHome || t2IsAway) t2OTL++;
-        }
-      });
-
-      message += `\nHead-to-Head Record:\n`;
-      message += `${team1Abbr}: ${t1W}-${t1L}-${t1T}-${t1OTL}\n`;
-      message += `${team2Abbr}: ${t2W}-${t2L}-${t2T}-${t2OTL}\n`;
-
       // ===== Season Results Section =====
       message += `\nSeason Results:\n`;
+
+      const seasonResults = await getHeadToHeadResults(team1Abbr, team2Abbr);
       if (seasonResults.length === 0) {
         message += 'No games played between these teams this season.\n';
       } else {
         seasonResults.forEach(game => {
+          // Corrected AwayScore column (was wrong before)
           const line = `${game.Away} ${game.AwayScore}-${game.HomeScore} ${game.Home}${game.OT ? ' ('+game.OT+')' : ''}`;
           message += `${line}\n`;
         });
@@ -223,7 +193,7 @@ async function getHeadToHeadResults(team1, team2) {
     const Home = row[8];       // column I
     const HomeScore = row[10]; // column K
     const Away = row[11];      // column L
-    const AwayScore = row[13]; // column N
+    const AwayScore = row[12]; // <-- FIXED column for AwayScore
     const OT = row[14];        // column O
 
     if (!Home || !Away || HomeScore === undefined || AwayScore === undefined) return;
@@ -240,23 +210,23 @@ async function getHeadToHeadResults(team1, team2) {
 async function getTeamStats() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'RawTeam!D3:AV30', 
+    range: 'RawTeam!D3:AV30',
   });
   const rows = res.data.values;
   if (!rows || !rows.length) return {};
 
   const statColumnMap = {
-    'GP': 4,'W':5,'L':6,'T':7,'OTL':8,'PTS':9,'W%':10,'GF':11,'GF/G':12,'GA':13,'GA/G':14,
+    'GP':4,'W':5,'L':6,'T':7,'OTL':8,'PTS':9,'W%':10,'GF':11,'GF/G':12,'GA':13,'GA/G':14,
     'SH':15,'S/G':16,'SH%':17,'SHA':18,'SA/G':19,'SD':20,'FOW':28,'FO':29,'FO%':30,'H':31,
     'H/G':32,'HA':33,'HD':34,'BAG':36,'BA':37,'BA%':38,'1xG':39,'1xA':40,'1x%':41,'PS':42,'PSA':43,'PS%':44
   };
 
   const headers = Object.keys(statColumnMap);
-
   const data = {};
+
   rows.forEach(row => {
     if (!row[0]) return;
-    const abbr = row[0].trim(); 
+    const abbr = row[0].trim();
     data[abbr] = {};
     headers.forEach(header => {
       const colIndex = statColumnMap[header];

@@ -131,14 +131,7 @@ client.on('interactionCreate', async (interaction) => {
       if (!team1Stats || !team2Stats) {
         return interaction.editReply("❌ Stats not found for one or both teams.");
       }
-
-      // Fetch emojis from teamEmojiMap
-      const team1Emoji = teamEmojiMap[team1Abbr] || team1Abbr;
-      const team2Emoji = teamEmojiMap[team2Abbr] || team2Abbr;
-
-      // Display emojis outside the code block
-      let message = `${team1Emoji}       ${team2Emoji}\n\n`;
-
+     
       const statsToCompare = [
         'GP','W','L','T','OTL','PTS','W%','GF','GF/G','GA','GA/G',
         'SH','S/G','SH%','SHA','SA/G','SD','FOW','FO','FO%',

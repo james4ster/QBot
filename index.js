@@ -142,7 +142,10 @@ client.on('interactionCreate', async (interaction) => {
       ];
 
       // Build pretty Discord message
-      let message = `**${team1Emoji} ${team1Abbr}** | **${team2Emoji} ${team2Abbr}**\n`;
+      let message = `${team1Emoji} | ${team2Emoji}\n`;
+
+      const statColWidth = 6; // width for stat name
+      const valColWidth = 7;  // width for each team's value
 
       statsToCompare.forEach(stat => {
         let t1 = team1Stats[stat] ?? '-';
@@ -151,21 +154,20 @@ client.on('interactionCreate', async (interaction) => {
         // Determine which stat is "better"
         let t1Bold = t1, t2Bold = t2;
 
-        // Skip stats that are not numeric for bold comparison
         if (!isNaN(parseFloat(t1)) && !isNaN(parseFloat(t2))) {
           if (stat === 'L' || stat === 'GA' || stat === 'GA/G' || stat === 'SA/G' || stat === 'SD') {
-            // For stats where lower is better
+            // lower is better
             if (parseFloat(t1) < parseFloat(t2)) t1Bold = `**${t1}**`;
             else if (parseFloat(t2) < parseFloat(t1)) t2Bold = `**${t2}**`;
           } else {
-            // For stats where higher is better
+            // higher is better
             if (parseFloat(t1) > parseFloat(t2)) t1Bold = `**${t1}**`;
             else if (parseFloat(t2) > parseFloat(t1)) t2Bold = `**${t2}**`;
           }
         }
 
-        // Append stat row
-        message += `${stat.padEnd(6)} | ${t1Bold.toString().padEnd(6)} | ${t2Bold}\n`;
+        // Append stat row with fixed-width formatting
+        message += `${stat.padEnd(statColWidth)} | ${t1Bold.toString().padEnd(valColWidth)} | ${t2Bold}\n`;
       });
 
       await interaction.editReply(message);
@@ -177,7 +179,6 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 
-// === Get Team Stats ===
 // === Get Team Stats ===
 async function getTeamStats() {
   const res = await sheets.spreadsheets.values.get({

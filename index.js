@@ -5,6 +5,8 @@ import { Client, GatewayIntentBits, Events, REST, Routes } from 'discord.js';
 import { google } from 'googleapis';
 import fs from 'fs';
 import { buildRecapForRow } from './recapUtils/buildGameRecap.js';
+import { abbrToFullName, teamEmojiMap } from './teamMappings.js';
+
 
 // === Phrase triggers ===
 const phrases = JSON.parse(fs.readFileSync('./phrases.json', 'utf-8'));
@@ -129,9 +131,7 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.editReply("❌ Stats not found for one or both teams.");
       }
 
-      // Fetch emojis from Google Sheets BSB Settings
-      const emojiMap = await getDiscordEmojiMap();
-     
+      // ✅ Fetch emojis from teamEmojiMap using abbreviations
       const team1Emoji = teamEmojiMap[team1Abbr] || team1Abbr;
       const team2Emoji = teamEmojiMap[team2Abbr] || team2Abbr;
 
@@ -142,14 +142,11 @@ client.on('interactionCreate', async (interaction) => {
         'PS','PSA','PS%'
       ];
 
-      // Build pretty Discord message
-      // Build header with only emojis
-      let message = `${team1Emoji}       ${team2Emoji}\n\n`;
-
+      // ✅ Header: only emojis
+      let message = `${team1Emoji.padEnd(10, ' ')}${team2Emoji}\n\n`;
 
       // Fixed-width padding for stats
       const pad = (str, len = 7) => str.toString().padEnd(len, ' ');
-
 
       statsToCompare.forEach(stat => {
         let t1 = team1Stats[stat] ?? '-';
@@ -241,22 +238,6 @@ async function getTeamStats() {
   });
 
   return data;
-}
-
-
-// === Get Discord Emoji Map from BSB Settings ===
-async function getDiscordEmojiMap() {
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_ID,
-    range: 'BSB Settings!B25:E40',
-  });
-  const rows = res.data.values || [];
-  const map = {};
-  rows.forEach(row => {
-    if (!row[2] || !row[3]) return; // Team or Emoji ID missing
-    map[row[2].trim()] = `<:${row[4] || row[2]}:${row[3]}>`; // use custom emoji
-  });
-  return map;
 }
 
 // === Login ===

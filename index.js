@@ -166,7 +166,7 @@ client.on('interactionCreate', async (interaction) => {
         if (isNaN(t1) || isNaN(t2)) return;
 
         // Stats where lower is better
-        if (['L','GA','GA/G','SA/G','SD'].includes(stat)) {
+        if (['L','GA','GA/G','SA/G','SD', 'HA'].includes(stat)) {
           if (t1 < t2) team1Wins.push(stat);
           else if (t2 < t1) team2Wins.push(stat);
         } else {

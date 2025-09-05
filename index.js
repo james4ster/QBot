@@ -129,10 +129,12 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.editReply("❌ Stats not found for one or both teams.");
       }
 
+      // Fetch emojis from BSB Settings
       const emojiMap = await getDiscordEmojiMap();
       const team1Emoji = emojiMap[team1Abbr] || team1Abbr;
       const team2Emoji = emojiMap[team2Abbr] || team2Abbr;
 
+      // Stats we want to compare
       const statsToCompare = [
         'GP','W','L','T','OTL','PTS','W%','GF','GF/G','GA','GA/G',
         'SH','S/G','SH%','SHA','SA/G','SD','FOW','FO','FO%',
@@ -140,35 +142,33 @@ client.on('interactionCreate', async (interaction) => {
         'PS','PSA','PS%'
       ];
 
-      // Determine bolding based on comparison
-      const statPreference = {
-        GP:'higher',W:'higher',L:'lower',T:'higher',OTL:'lower',PTS:'higher', 'W%':'higher',
-        GF:'higher','GF/G':'higher',GA:'lower','GA/G':'lower',
-        SH:'higher','S/G':'higher','SH%':'higher','SHA':'lower','SA/G':'lower','SD':'lower',
-        FOW:'higher','FO':'higher','FO%':'higher',
-        H:'higher','H/G':'higher','HA':'lower','HD':'lower',
-        BAG:'higher','BA':'higher','BA%':'higher',
-        '1xG':'higher','1xA':'higher','1x%':'higher',
-        PS:'higher','PSA':'higher','PS%':'higher'
-      };
-
-      // Build table
-      let tableHeader = `${team1Emoji} ${team1Abbr} | ${team2Emoji} ${team2Abbr}`;
-      let table = "```";
-
+      // Compare and bold best values
+      let table = "";
       statsToCompare.forEach(stat => {
-        let t1 = team1Stats[stat] ?? '-';
-        let t2 = team2Stats[stat] ?? '-';
-        const t1Wins = (statPreference[stat]==='higher' && t1 > t2) || (statPreference[stat]==='lower' && t1 < t2);
-        const t2Wins = !t1Wins && t1!==t2;
-        if(t1Wins) t1 = `**${t1}**`;
-        if(t2Wins) t2 = `**${t2}**`;
-        table += `\n${stat.padEnd(6)} | ${t1.toString().padEnd(6)} | ${t2}`;
+        const t1 = team1Stats[stat];
+        const t2 = team2Stats[stat];
+        let t1Display = t1;
+        let t2Display = t2;
+
+        if (t1 != null && t2 != null && !isNaN(t1) && !isNaN(t2)) {
+          if (t1 === t2) {
+            // tie, leave as-is
+          } else {
+            const higherBetter = !['GA','GA/G','SD'].includes(stat);
+            if ((higherBetter && t1 > t2) || (!higherBetter && t1 < t2)) {
+              t1Display = `**${t1}**`;
+            } else {
+              t2Display = `**${t2}**`;
+            }
+          }
+        }
+
+        table += `${stat.padEnd(6)} | ${t1Display.toString().padEnd(6)} | ${t2Display}\n`;
       });
 
-      table += "\n```";
-
-      await interaction.editReply(`${tableHeader}\n${table}`);
+      // Send formatted Discord message with emojis and table
+      const tableHeader = `${team1Emoji} ${team1Abbr} | ${team2Emoji} ${team2Abbr}`;
+      await interaction.editReply(`${tableHeader}\n\`\`\`\n${table}\`\`\``);
 
     } catch (err) {
       console.error(err);
@@ -181,37 +181,38 @@ client.on('interactionCreate', async (interaction) => {
 async function getTeamStats() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'RawTeam!D3:AV30',
+    range: 'RawTeam!D3:BB30', // adjust to your full data range
   });
   const rows = res.data.values;
   if (!rows || !rows.length) return {};
 
+  // Column indices relative to D3 (row[0] = D3)
   const statColumnMap = {
     'GP': 4,  'W': 5,  'L': 6,  'T': 7,  'OTL': 8,  'PTS': 9, 'W%': 10,
     'GF': 11, 'GF/G': 12, 'GA': 13, 'GA/G': 14,
     'SH': 15, 'S/G': 16, 'SH%': 17, 'SHA': 18, 'SA/G': 19, 'SD': 20,
-    'FOW': 31, 'FO': 32, 'FO%': 33, 'H': 34, 'H/G': 35, 'HA': 36, 'HD': 37,
+    'FOW': 31, 'FO': 32, 'FO%': 33,
+    'H': 34, 'H/G': 35, 'HA': 36, 'HD': 37,
     'BAG': 39, 'BA': 40, 'BA%': 41,
     '1xG': 42, '1xA': 43, '1x%': 44,
     'PS': 45, 'PSA': 46, 'PS%': 47
   };
 
-  const headers = Object.keys(statColumnMap);
   const data = {};
   rows.forEach(row => {
-    if (!row[3]) return; // D = Team abbreviation
-    const abbr = row[3].trim();
+    if (!row[0]) return;
+    const abbr = row[0].trim();
     data[abbr] = {};
-    headers.forEach(header => {
-      const colIndex = statColumnMap[header];
+    Object.entries(statColumnMap).forEach(([stat, colIndex]) => {
       const val = parseFloat(row[colIndex]);
-      data[abbr][header] = isNaN(val) ? row[colIndex] ?? '-' : val;
+      data[abbr][stat] = isNaN(val) ? row[colIndex] ?? '-' : val;
     });
   });
+
   return data;
 }
 
-// === Get Discord Emoji Map ===
+// === Get Discord Emoji Map from BSB Settings ===
 async function getDiscordEmojiMap() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
@@ -220,8 +221,8 @@ async function getDiscordEmojiMap() {
   const rows = res.data.values || [];
   const map = {};
   rows.forEach(row => {
-    if (!row[2] || !row[3]) return; // Team or Emoji ID missing
-    map[row[2].trim()] = `<:${row[4] || row[2]}:${row[3]}>`; 
+    if (!row[2] || !row[3]) return;
+    map[row[2].trim()] = `<:${row[4] || row[2]}:${row[3]}>`;
   });
   return map;
 }

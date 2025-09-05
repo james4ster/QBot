@@ -131,7 +131,7 @@ client.on('interactionCreate', async (interaction) => {
       if (!team1Stats || !team2Stats) {
         return interaction.editReply("❌ Stats not found for one or both teams.");
       }
-     
+
       const statsToCompare = [
         'GP','W','L','T','OTL','PTS','W%','GF','GF/G','GA','GA/G',
         'SH','S/G','SH%','SHA','SA/G','SD','FOW','FO','FO%',
@@ -139,13 +139,15 @@ client.on('interactionCreate', async (interaction) => {
         'PS','PSA','PS%'
       ];
 
+      // Initialize message string
+      let message = '';
+
       // Fixed-width padding helper
       const pad = (str, len = 7) => str.toString().padEnd(len, ' ');
 
-      // Adjusted padding for team abbreviations
-      // Add 3 spaces before first team, 5 spaces between first and second
+      // Team abbreviations inside the block, slightly pushed over
       message += `${pad('', 10)}${pad(team1Abbr, 8)}${pad(team2Abbr, 8)}\n`;
-      message += '---------- -------- --------\n'; // dashed line
+      message += '---------- -------- --------\n'; // dashed line without |
 
       // Add all stats
       statsToCompare.forEach(stat => {
@@ -166,6 +168,7 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
   }
+
 
 
 

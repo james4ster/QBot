@@ -101,6 +101,7 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
   // ==== /testrecap ====
+  /* ==== COMMENTING OUT UNTIL READY TO TEST ====
   if (interaction.commandName === 'testrecap') {
     try {
       await interaction.deferReply();
@@ -113,7 +114,7 @@ client.on('interactionCreate', async (interaction) => {
       console.error(err);
       await interaction.editReply("❌ Error generating recap");
     }
-  }
+  } */
 
   // ==== /matchup ====
   if (interaction.commandName === 'matchup') {
@@ -152,7 +153,7 @@ client.on('interactionCreate', async (interaction) => {
       message += '```';
 
       // Add abbreviations inside the code block, aligned with middle/right columns
-      message += `${pad('', 7)}| ${pad(team1Abbr)}| ${pad(team2Abbr)}\n`;
+      message += `${pad('', 9)}| ${pad(team1Abbr)}| ${pad(team2Abbr)}\n`;
       message += '-'.repeat(7 + 2 + 7 + 2 + 7) + '\n'; // separator line
 
       // Add the stats rows

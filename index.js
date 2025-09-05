@@ -132,8 +132,8 @@ client.on('interactionCreate', async (interaction) => {
       // Fetch emojis from Google Sheets BSB Settings
       const emojiMap = await getDiscordEmojiMap();
      
-      const team1Emoji = `:${team1Abbr}:`;
-      const team2Emoji = `:${team2Abbr}:`;
+      const team1Emoji = teamEmojiMap[team1Abbr] || team1Abbr;
+      const team2Emoji = teamEmojiMap[team2Abbr] || team2Abbr;
 
       const statsToCompare = [
         'GP','W','L','T','OTL','PTS','W%','GF','GF/G','GA','GA/G',
@@ -144,17 +144,17 @@ client.on('interactionCreate', async (interaction) => {
 
       // Build pretty Discord message
       // Build header with only emojis
-      let message = `:${team1Abbr}:       :${team2Abbr}:\n\n`;
+      let message = `${team1Emoji}       ${team2Emoji}\n\n`;
 
 
       // Fixed-width padding for stats
       const pad = (str, len = 7) => str.toString().padEnd(len, ' ');
 
+
       statsToCompare.forEach(stat => {
         let t1 = team1Stats[stat] ?? '-';
         let t2 = team2Stats[stat] ?? '-';
 
-        // Bold better stats
         let t1Bold = t1, t2Bold = t2;
         if (!isNaN(parseFloat(t1)) && !isNaN(parseFloat(t2))) {
           if (['L','GA','GA/G','SA/G','SD'].includes(stat)) {

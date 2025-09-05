@@ -131,10 +131,6 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.editReply("❌ Stats not found for one or both teams.");
       }
 
-      // Fetch emojis
-      const team1Emoji = teamEmojiMap[team1Abbr] || team1Abbr;
-      const team2Emoji = teamEmojiMap[team2Abbr] || team2Abbr;
-
       const statsToCompare = [
         'GP','W','L','T','OTL','PTS','W%','GF','GF/G','GA','GA/G',
         'SH','S/G','SH%','SHA','SA/G','SD','FOW','FO','FO%',
@@ -142,23 +138,22 @@ client.on('interactionCreate', async (interaction) => {
         'PS','PSA','PS%'
       ];
 
-      // Put emojis above the code block
-      let message = `${' '.repeat(10)}${team1Emoji}${' '.repeat(7)}${team2Emoji}\n\n`;
-
-      // Start code block for stats
-      message += "```\n";
-
+      // Fixed-width padding function
       const pad = (str, len = 7) => str.toString().padEnd(len, ' ');
+
+      // Header: team abbreviations aligned over middle and right columns
+      let message = '```'; // start code block
+      message += `${pad('', 7)}| ${pad(team1Abbr)}| ${pad(team2Abbr)}\n`;
+      message += '-'.repeat(7 + 2 + 7 + 2 + 7) + '\n'; // separator line
 
       statsToCompare.forEach(stat => {
         let t1 = team1Stats[stat] ?? '-';
         let t2 = team2Stats[stat] ?? '-';
 
-        // No bolding
         message += `${pad(stat)} | ${pad(t1)} | ${pad(t2)}\n`;
       });
 
-      message += "```"; // end code block
+      message += '```'; // end code block
 
       await interaction.editReply(message);
 
@@ -167,6 +162,7 @@ client.on('interactionCreate', async (interaction) => {
       await interaction.editReply("❌ Error generating matchup stats.");
     }
   }
+
 
 
 

@@ -143,19 +143,21 @@ client.on('interactionCreate', async (interaction) => {
       ];
 
       // Build pretty Discord message
-      let message = `${team1Emoji}       ${team2Emoji}\n\n`; // emojis as headers
+      // Build header with only emojis
+      let message = `:${team1Abbr}:       :${team2Abbr}:\n\n`;
 
-      const statColWidth = 7; // 7 chars per stat column
-      const valColWidth = 7;  // 7 chars per team value
+
+      // Fixed-width padding for stats
+      const pad = (str, len = 7) => str.toString().padEnd(len, ' ');
 
       statsToCompare.forEach(stat => {
         let t1 = team1Stats[stat] ?? '-';
         let t2 = team2Stats[stat] ?? '-';
 
+        // Bold better stats
         let t1Bold = t1, t2Bold = t2;
-
         if (!isNaN(parseFloat(t1)) && !isNaN(parseFloat(t2))) {
-          if (stat === 'L' || stat === 'GA' || stat === 'GA/G' || stat === 'SA/G' || stat === 'SD') {
+          if (['L','GA','GA/G','SA/G','SD'].includes(stat)) {
             if (parseFloat(t1) < parseFloat(t2)) t1Bold = `**${t1}**`;
             else if (parseFloat(t2) < parseFloat(t1)) t2Bold = `**${t2}**`;
           } else {
@@ -164,8 +166,7 @@ client.on('interactionCreate', async (interaction) => {
           }
         }
 
-        // Fixed-width formatting
-        message += `${stat.padEnd(statColWidth)}|     ${t1Bold.toString().padEnd(valColWidth)}| ${t2Bold.toString().padEnd(valColWidth)}\n`;
+        message += `${pad(stat)} | ${pad(t1Bold)} | ${pad(t2Bold)}\n`;
       });
 
       await interaction.editReply(message);

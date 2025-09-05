@@ -141,7 +141,7 @@ client.on('interactionCreate', async (interaction) => {
         'PS','PSA','PS%'
       ];
 
-      // Show emojis and abbreviations above the code block
+      // Build the table for Discord
       let tableHeader = `${team1Emoji} ${team1Abbr} | ${team2Emoji} ${team2Abbr}`;
       let table = "```"; // start code block
 
@@ -153,12 +153,10 @@ client.on('interactionCreate', async (interaction) => {
 
       table += "\n```";
 
-      // Final message:
       await interaction.editReply(`${tableHeader}\n${table}`);
-
     } catch (err) {
       console.error(err);
-      await interaction.editReply("❌ Error generating matchup.");
+      if (!interaction.replied) await interaction.editReply("❌ Error fetching matchup stats");
     }
   }
 });
@@ -167,61 +165,60 @@ client.on('interactionCreate', async (interaction) => {
 async function getTeamStats() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'RawTeam!D3:AV30',
+    range: 'RawTeam!D3:AV30', // data starts at column D
   });
   const rows = res.data.values;
   if (!rows || !rows.length) return {};
 
-  // ✅ Corrected mapping for only the stats you wanted
+  // Corrected mapping relative to column D
   const statColumnMap = {
-    'GP': 3,    // column G in sheet -> row[3]
-    'W': 4,     // H -> row[4]
-    'L': 5,     // I -> row[5]
-    'T': 6,     // J -> row[6]
-    'OTL': 7,   // K -> row[7]
-    'PTS': 8,   // L -> row[8]
-    'W%': 9,    // M -> row[9]
-    'GF': 10,   // N -> row[10]
-    'GF/G': 11, // O -> row[11]
-    'GA': 12,   // P -> row[12]
-    'GA/G': 13, // Q -> row[13]
-    'SH': 14,   // R -> row[14]
-    'S/G': 15,  // S -> row[15]
-    'SH%': 16,  // T -> row[16]
-    'SHA': 17,  // U -> row[17]
-    'SA/G': 18, // V -> row[18]
-    'SD': 19,   // W -> row[19]
-    'FOW': 27,  // AF -> row[27]
-    'FO': 28,   // AG -> row[28]
-    'FO%': 29,  // AH -> row[29]
-    'H': 30,    // AI -> row[30]
-    'H/G': 31,  // AJ -> row[31]
-    'HA': 32,   // AK -> row[32]
-    'HD': 33,   // AL -> row[33]
-    'BAG': 35,  // AN -> row[35]
-    'BA': 36,   // AO -> row[36]
-    'BA%': 37,  // AP -> row[37]
-    '1xG': 38,  // AQ -> row[38]
-    '1xA': 39,  // AR -> row[39]
-    '1x%': 40,  // AS -> row[40]
-    'PS': 41,   // AT -> row[41]
-    'PSA': 42,  // AU -> row[42]
-    'PS%': 43   // AV -> row[43]
+    'GP': 4,    // H
+    'W': 5,     // I
+    'L': 6,     // J
+    'T': 7,     // K
+    'OTL': 8,   // L
+    'PTS': 9,   // M
+    'W%': 10,   // N
+    'GF': 11,   // O
+    'GF/G': 12, // P
+    'GA': 13,   // Q
+    'GA/G': 14, // R
+    'SH': 15,   // S
+    'S/G': 16,  // T
+    'SH%': 17,  // U
+    'SHA': 18,  // V
+    'SA/G': 19, // W
+    'SD': 20,   // X
+    'FOW': 31,  // AF
+    'FO': 32,   // AG
+    'FO%': 33,  // AH
+    'H': 34,    // AI
+    'H/G': 35,  // AJ
+    'HA': 36,   // AK
+    'HD': 37,   // AL
+    'BAG': 39,  // AN
+    'BA': 40,   // AO
+    'BA%': 41,  // AP
+    '1xG': 42,  // AQ
+    '1xA': 43,  // AR
+    '1x%': 44,  // AS
+    'PS': 45,   // AT
+    'PSA': 46,  // AU
+    'PS%': 47   // AV
   };
 
-
-
   const headers = Object.keys(statColumnMap);
-
   const data = {};
+
   rows.forEach(row => {
     if (!row[0]) return;
-    const abbr = row[0].trim(); // Team abbreviation is in column D
+    const abbr = row[0].trim(); // column D is team abbreviation
     data[abbr] = {};
+
     headers.forEach(header => {
       const colIndex = statColumnMap[header];
-      const val = parseFloat(row[colIndex]);
-      data[abbr][header] = isNaN(val) ? row[colIndex] ?? '-' : val;
+      const val = row[colIndex]; 
+      data[abbr][header] = val ?? '-';
     });
   });
 

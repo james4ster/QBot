@@ -191,22 +191,22 @@ async function getTeamStats() {
     'SHA': 18,  // V
     'SA/G': 19, // W
     'SD': 20,   // X
-    'FOW': 31,  // AF
-    'FO': 32,   // AG
-    'FO%': 33,  // AH
-    'H': 34,    // AI
-    'H/G': 35,  // AJ
-    'HA': 36,   // AK
-    'HD': 37,   // AL
-    'BAG': 39,  // AN
-    'BA': 40,   // AO
-    'BA%': 41,  // AP
-    '1xG': 42,  // AQ
-    '1xA': 43,  // AR
-    '1x%': 44,  // AS
-    'PS': 45,   // AT
-    'PSA': 46,  // AU
-    'PS%': 47   // AV
+    'FOW': 28,  // AF
+    'FO': 29,   // AG
+    'FO%': 30,  // AH
+    'H': 31,    // AI
+    'H/G': 32,  // AJ
+    'HA': 33,   // AK
+    'HD': 34,   // AL
+    'BAG': 36,  // AN
+    'BA': 37,   // AO
+    'BA%': 38,  // AP
+    '1xG': 39,  // AQ
+    '1xA': 40,  // AR
+    '1x%': 41,  // AS
+    'PS': 42,   // AT
+    'PSA': 43,  // AU
+    'PS%': 44   // AV
   };
 
   const headers = Object.keys(statColumnMap);

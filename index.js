@@ -143,30 +143,35 @@ client.on('interactionCreate', async (interaction) => {
         'PS','PSA','PS%'
       ];
 
-      // ✅ Header: emojis outside the block
-      let message = `${team1Emoji}       ${team2Emoji}\n\n`;
+      // ✅ Header: emojis outside the code block
+      let headerMessage = `${team1Emoji}       ${team2Emoji}\n\n`;
 
       // Fixed-width padding
       const pad = (str, len = 7) => str.toString().padEnd(len, ' ');
 
-      // ✅ Add team abbreviations inside the block
+      // Build code block message
+      let message = '';
+      // Team abbreviations row
       message += `${pad('')}| ${pad(team1Abbr)}| ${pad(team2Abbr)}\n`;
-      message += `${'-'.repeat(7)}|${'-'.repeat(8)}|${'-'.repeat(8)}\n`;
+      // Separator row (just dashes, no pipes)
+      message += `${'-'.repeat(7)} ${'-'.repeat(8)} ${'-'.repeat(8)}\n`;
 
-      // Add the stats rows
+      // Stats rows
       statsToCompare.forEach(stat => {
         const t1 = team1Stats[stat] ?? '-';
         const t2 = team2Stats[stat] ?? '-';
         message += `${pad(stat)} | ${pad(t1)} | ${pad(t2)}\n`;
       });
 
-      await interaction.editReply('```' + message + '```');
+      // Send the message with emojis above the code block
+      await interaction.editReply(headerMessage + '```' + message + '```');
 
     } catch (err) {
       console.error(err);
       await interaction.editReply("❌ Error generating matchup stats.");
     }
   }
+
 
 
 

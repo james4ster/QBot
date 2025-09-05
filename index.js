@@ -6,16 +6,13 @@ import { google } from 'googleapis';
 import fs from 'fs';
 import { buildRecapForRow } from './recapUtils/buildGameRecap.js';
 
+// === Phrase triggers ===
 const phrases = JSON.parse(fs.readFileSync('./phrases.json', 'utf-8'));
-
-// === Team name mapping (if needed) ===
-import { abbrToFullName } from './teamMappings.js';
 
 // === Express Server ===
 const app = express();
 const PORT = process.env.PORT || 10000;
 app.use(express.json());
-
 app.get('/', (req, res) => res.send('QBot is alive!'));
 app.listen(PORT, () => console.log(`🌐 Express server listening on port ${PORT}`));
 
@@ -57,8 +54,7 @@ client.on('messageCreate', async message => {
 
   for (const phraseObj of phrases) {
     const triggers = phraseObj.triggers.map(t => t.toLowerCase());
-    const triggerMatches = triggers.some(trigger => new RegExp(`\\b${trigger}\\b`, 'i').test(msgLower));
-    if (triggerMatches) {
+    if (triggers.some(trigger => new RegExp(`\\b${trigger}\\b`, 'i').test(msgLower))) {
       repliedMessages.add(message.id);
       await message.channel.send(phraseObj.response);
       setTimeout(() => repliedMessages.delete(message.id), 10 * 60 * 1000);
@@ -72,59 +68,41 @@ const commands = [
   {
     name: 'testrecap',
     description: 'Generate a test recap for a single game',
-    options: [
-      {
-        name: 'gamerow',
-        description: 'The row number of the game in your sheet',
-        type: 4,
-        required: false,
-      },
-    ],
+    options: [{ name: 'gamerow', description: 'The row number of the game in your sheet', type: 4, required: false }],
   },
   {
     name: 'matchup',
     description: 'Compare two team stats',
     options: [
-      {
-        name: 'team1',
-        description: 'First team abbreviation (e.g., SUP, BNX)',
-        type: 3,
-        required: true,
-      },
-      {
-        name: 'team2',
-        description: 'Second team abbreviation (e.g., THC, NCJ)',
-        type: 3,
-        required: true,
-      },
+      { name: 'team1', description: 'First team abbreviation (e.g., SUP, BNX)', type: 3, required: true },
+      { name: 'team2', description: 'Second team abbreviation (e.g., THS, NCJ)', type: 3, required: true },
     ],
   },
 ];
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-
 (async () => {
   try {
-    console.log('⚡ Registering slash commands...');
+    console.log('⚡ Registering commands...');
     await rest.put(
       Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
       { body: commands }
     );
-    console.log('✅ Slash commands registered!');
+    console.log('✅ Commands registered!');
   } catch (err) {
     console.error('❌ Error registering commands:', err);
   }
 })();
 
 // === Interaction Handling ===
-client.on('interactionCreate', async interaction => {
+client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
+  // ==== /testrecap ====
   if (interaction.commandName === 'testrecap') {
     try {
       await interaction.deferReply();
-      console.log("Building recap for game...");
-      const recapText = await buildRecapForRow();
+      const recapText = await buildRecapForRow(gameData);
       await interaction.editReply({
         content: recapText,
         files: ['./recapUtils/output/test_game.png'],
@@ -135,6 +113,7 @@ client.on('interactionCreate', async interaction => {
     }
   }
 
+  // ==== /matchup ====
   if (interaction.commandName === 'matchup') {
     try {
       await interaction.deferReply();
@@ -143,8 +122,6 @@ client.on('interactionCreate', async interaction => {
       const team2Abbr = interaction.options.getString('team2').toUpperCase();
 
       const stats = await getTeamStats();
-      const emojis = await getTeamEmojis();
-
       const team1Stats = stats[team1Abbr];
       const team2Stats = stats[team2Abbr];
 
@@ -152,27 +129,27 @@ client.on('interactionCreate', async interaction => {
         return interaction.editReply("❌ Stats not found for one or both teams.");
       }
 
-      const team1Emoji = emojis[team1Abbr] || team1Abbr;
-      const team2Emoji = emojis[team2Abbr] || team2Abbr;
+      // Fetch emojis from Google Sheets BSB Settings
+      const emojiMap = await getDiscordEmojiMap();
+      const team1Emoji = emojiMap[team1Abbr] || team1Abbr;
+      const team2Emoji = emojiMap[team2Abbr] || team2Abbr;
 
       const statsToCompare = [
         'GP','W','L','T','OTL','PTS','W%','GF','GF/G','GA','GA/G',
-        'SH','S/G','SH%','SHA','SA/G','SD','FOW','FO','FO%','H','H/G','HA','HD',
-        'BAG','BA','BA%','1xG','1xA','1x%','PS','PSA','PS%'
+        'SH','S/G','SH%','SHA','SA/G','SD','FOW','FO','FO%',
+        'H','H/G','HA','HD','BAG','BA','BA%','1xG','1xA','1x%',
+        'PS','PSA','PS%'
       ];
 
-      let table = `Stat   | ${team1Emoji} | ${team2Emoji}\n`;
-      table += "-----------------------------\n";
-
+      let table = `${team1Emoji} | ${team2Emoji}\n-----------------------------\n`;
       statsToCompare.forEach(stat => {
-        const t1 = team1Stats[stat] ?? "-";
-        const t2 = team2Stats[stat] ?? "-";
+        const t1 = team1Stats[stat] ?? '-';
+        const t2 = team2Stats[stat] ?? '-';
         table += `${stat.padEnd(6)} | ${t1.toString().padEnd(6)} | ${t2}\n`;
       });
 
-      await interaction.editReply({
-        content: "```\n" + table + "```",
-      });
+      await interaction.editReply({ content: '```\n' + table + '```' });
+
     } catch (err) {
       console.error(err);
       await interaction.editReply("❌ Error generating matchup.");
@@ -180,21 +157,20 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
-// === Helpers ===
+// === Get Team Stats ===
 async function getTeamStats() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
     range: 'RawTeam!D3:AV30',
   });
-
   const rows = res.data.values;
-  if (!rows || rows.length < 1) return {};
+  if (!rows || !rows.length) return {};
 
   const headers = [
     'GP','W','L','T','OTL','PTS','W%','GF','GF/G','GA','GA/G',
-    'SH','S/G','SH%','SHA','SA/G','SD','PPG','PP','PP%',
-    'PK','PKGA','PK%','SHG','FOW','FO','FO%','H','H/G','HA','HD',
-    'BAG','BA','BA%','1xG','1xA','1x%','PS','PSA','PS%'
+    'SH','S/G','SH%','SHA','SA/G','SD','FOW','FO','FO%',
+    'H','H/G','HA','HD','BAG','BA','BA%','1xG','1xA','1x%',
+    'PS','PSA','PS%'
   ];
 
   const data = {};
@@ -203,7 +179,7 @@ async function getTeamStats() {
     const abbr = row[0].trim();
     data[abbr] = {};
     headers.forEach((header, i) => {
-      const val = parseFloat(row[i + 4]);
+      const val = parseFloat(row[i + 4]); // first stat column = H / index 4
       data[abbr][header] = isNaN(val) ? row[i + 4] : val;
     });
   });
@@ -211,26 +187,20 @@ async function getTeamStats() {
   return data;
 }
 
-async function getTeamEmojis() {
+// === Get Discord Emoji Map from BSB Settings ===
+async function getDiscordEmojiMap() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'BSB Settings!C26:E100',
+    range: 'BSB Settings!B25:E40',
   });
-
-  const rows = res.data.values;
+  const rows = res.data.values || [];
   const map = {};
-  if (!rows) return map;
-
   rows.forEach(row => {
-    const abbr = row[0];
-    const emojiName = row[2];
-    if (abbr && emojiName) {
-      map[abbr] = `:${emojiName}:`;
-    }
+    if (!row[2] || !row[3]) return; // Team or Emoji ID missing
+    map[row[2].trim()] = `<:${row[4] || row[2]}:${row[3]}>`; // use custom emoji
   });
-
   return map;
 }
 
-// === Login to Discord ===
+// === Login ===
 client.login(process.env.DISCORD_TOKEN).catch(err => console.error('❌ Discord login failed:', err));

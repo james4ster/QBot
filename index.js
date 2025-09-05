@@ -100,7 +100,7 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
   // ==== /testrecap ====
-  /* ==== COMMENTED OUT UNTIL READY TO TEST ====
+  /* ==== COMMENTING OUT UNTIL READY TO TEST ====
   if (interaction.commandName === 'testrecap') {
     try {
       await interaction.deferReply();
@@ -151,10 +151,41 @@ client.on('interactionCreate', async (interaction) => {
         message += `${pad(stat)} | ${pad(t1)} | ${pad(t2)}\n`;
       });
 
+      // ===== Head-to-Head Records =====
+      const seasonResults = await getHeadToHeadResults(team1Abbr, team2Abbr);
+
+      let t1W=0, t1L=0, t1T=0, t1OTL=0;
+      let t2W=0, t2L=0, t2T=0, t2OTL=0;
+
+      seasonResults.forEach(game => {
+        const t1IsHome = game.Home === team1Abbr;
+        const t1IsAway = game.Away === team1Abbr;
+        const t2IsHome = game.Home === team2Abbr;
+        const t2IsAway = game.Away === team2Abbr;
+
+        if (game.HomeScore > game.AwayScore) {
+          if (t1IsHome) t1W++; else if (t1IsAway) t1L++;
+          if (t2IsHome) t2W++; else if (t2IsAway) t2L++;
+        } else if (game.AwayScore > game.HomeScore) {
+          if (t1IsAway) t1W++; else if (t1IsHome) t1L++;
+          if (t2IsAway) t2W++; else if (t2IsHome) t2L++;
+        } else {
+          if (t1IsHome || t1IsAway) t1T++;
+          if (t2IsHome || t2IsAway) t2T++;
+        }
+
+        if (game.OT === 'OTL') {
+          if (t1IsHome || t1IsAway) t1OTL++;
+          if (t2IsHome || t2IsAway) t2OTL++;
+        }
+      });
+
+      message += `\nHead-to-Head Record:\n`;
+      message += `${team1Abbr}: ${t1W}-${t1L}-${t1T}-${t1OTL}\n`;
+      message += `${team2Abbr}: ${t2W}-${t2L}-${t2T}-${t2OTL}\n`;
+
       // ===== Season Results Section =====
       message += `\nSeason Results:\n`;
-
-      const seasonResults = await getHeadToHeadResults(team1Abbr, team2Abbr);
       if (seasonResults.length === 0) {
         message += 'No games played between these teams this season.\n';
       } else {
@@ -168,8 +199,11 @@ client.on('interactionCreate', async (interaction) => {
 
     } catch (err) {
       console.error(err);
-      try { await interaction.editReply("❌ Error generating matchup stats."); } 
-      catch (_) { console.log('Failed to send reply — interaction may have expired.'); }
+      try {
+        await interaction.editReply("❌ Error generating matchup stats.");
+      } catch (_) {
+        console.log('Failed to send reply — interaction may have expired.');
+      }
     }
   }
 });
@@ -206,19 +240,15 @@ async function getHeadToHeadResults(team1, team2) {
 async function getTeamStats() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'RawTeam!D3:AV30', // D=0, AV is last column we care about
+    range: 'RawTeam!D3:AV30', 
   });
   const rows = res.data.values;
   if (!rows || !rows.length) return {};
 
   const statColumnMap = {
-    'GP': 4,    'W': 5,     'L': 6,     'T': 7,     'OTL': 8,
-    'PTS': 9,   'W%': 10,   'GF': 11,   'GF/G': 12, 'GA': 13,
-    'GA/G': 14, 'SH': 15,   'S/G': 16,  'SH%': 17,  'SHA': 18,
-    'SA/G': 19, 'SD': 20,   'FOW': 28,  'FO': 29,   'FO%': 30,
-    'H': 31,    'H/G': 32,  'HA': 33,   'HD': 34,   'BAG': 36,
-    'BA': 37,   'BA%': 38,  '1xG': 39,  '1xA': 40,  '1x%': 41,
-    'PS': 42,   'PSA': 43,  'PS%': 44
+    'GP': 4,'W':5,'L':6,'T':7,'OTL':8,'PTS':9,'W%':10,'GF':11,'GF/G':12,'GA':13,'GA/G':14,
+    'SH':15,'S/G':16,'SH%':17,'SHA':18,'SA/G':19,'SD':20,'FOW':28,'FO':29,'FO%':30,'H':31,
+    'H/G':32,'HA':33,'HD':34,'BAG':36,'BA':37,'BA%':38,'1xG':39,'1xA':40,'1x%':41,'PS':42,'PSA':43,'PS%':44
   };
 
   const headers = Object.keys(statColumnMap);
@@ -226,7 +256,7 @@ async function getTeamStats() {
   const data = {};
   rows.forEach(row => {
     if (!row[0]) return;
-    const abbr = row[0].trim(); // Team abbreviation in column D
+    const abbr = row[0].trim(); 
     data[abbr] = {};
     headers.forEach(header => {
       const colIndex = statColumnMap[header];

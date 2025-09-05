@@ -142,9 +142,9 @@ client.on('interactionCreate', async (interaction) => {
       const pad = (str, len = 7) => str.toString().padEnd(len, ' ');
 
       let message = '';
-      // Team abbreviations row
-      message += `${pad('', 10)}${pad(team1Abbr, 8)}${pad(team2Abbr, 8)}\n`;
-      message += '---------- -------- --------\n';
+      // Team abbreviations row (padded for alignment)
+      message += `${pad('', 10)}${pad(team1Abbr, 8)}${pad(team2Abbr, 10)}\n`;
+      message += '----------------------------\n';
 
       // Stats rows
       statsToCompare.forEach(stat => {
@@ -191,25 +191,26 @@ client.on('interactionCreate', async (interaction) => {
     const results = [];
 
     rows.forEach(row => {
-      const H = row[4]; // Home team abbreviation column
-      const A = row[3]; // Away team abbreviation column
-      const Hscore = row[7]; // Home score column
-      const Ascore = row[9]; // Away score column
+      const Home = row[8]; // column I
+      const Away = row[11]; // column L
+      const HomeScore = row[9]; // column K
+      const AwayScore = row[13]; // column N
 
-      if (!H || !A || Hscore === undefined || Ascore === undefined) return;
+      if (!Home || !Away || HomeScore === undefined || AwayScore === undefined) return;
 
-      if ((H === team1 && A === team2) || (H === team2 && A === team1)) {
+      if ((Home === team1 && Away === team2) || (Home === team2 && Away === team1)) {
         results.push({
-          Home: H,
-          Away: A,
-          HomeScore: Hscore,
-          AwayScore: Ascore
+          Home,
+          Away,
+          HomeScore,
+          AwayScore
         });
       }
     });
 
     return results;
   }
+
 
 
 

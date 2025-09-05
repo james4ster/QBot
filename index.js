@@ -146,8 +146,8 @@ client.on('interactionCreate', async (interaction) => {
       const pad = (str, len = 7) => str.toString().padEnd(len, ' ');
 
       // Team abbreviations inside the block, slightly pushed over
-      message += `${pad('', 10)}${pad(team1Abbr, 8)}${pad(team2Abbr, 8)}\n`;
-      message += '---------- -------- --------\n'; // dashed line without |
+      message += `${pad('', 10)}${pad(team1Abbr, 8)}  ${pad(team2Abbr, 8)}\n`;
+      message += '----------------------------\n'; // dashed line without |
 
       // Add all stats
       statsToCompare.forEach(stat => {

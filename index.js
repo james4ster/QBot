@@ -131,8 +131,9 @@ client.on('interactionCreate', async (interaction) => {
 
       // Fetch emojis from Google Sheets BSB Settings
       const emojiMap = await getDiscordEmojiMap();
-      const team1Emoji = emojiMap[team1Abbr] || team1Abbr;
-      const team2Emoji = emojiMap[team2Abbr] || team2Abbr;
+     
+      const team1Emoji = `:${team1Abbr}:`;
+      const team2Emoji = `:${team2Abbr}:`;
 
       const statsToCompare = [
         'GP','W','L','T','OTL','PTS','W%','GF','GF/G','GA','GA/G',
@@ -142,32 +143,29 @@ client.on('interactionCreate', async (interaction) => {
       ];
 
       // Build pretty Discord message
-      let message = `${team1Emoji} | ${team2Emoji}\n`;
+      let message = `${team1Emoji}       ${team2Emoji}\n\n`; // emojis as headers
 
-      const statColWidth = 6; // width for stat name
-      const valColWidth = 7;  // width for each team's value
+      const statColWidth = 7; // 7 chars per stat column
+      const valColWidth = 7;  // 7 chars per team value
 
       statsToCompare.forEach(stat => {
         let t1 = team1Stats[stat] ?? '-';
         let t2 = team2Stats[stat] ?? '-';
 
-        // Determine which stat is "better"
         let t1Bold = t1, t2Bold = t2;
 
         if (!isNaN(parseFloat(t1)) && !isNaN(parseFloat(t2))) {
           if (stat === 'L' || stat === 'GA' || stat === 'GA/G' || stat === 'SA/G' || stat === 'SD') {
-            // lower is better
             if (parseFloat(t1) < parseFloat(t2)) t1Bold = `**${t1}**`;
             else if (parseFloat(t2) < parseFloat(t1)) t2Bold = `**${t2}**`;
           } else {
-            // higher is better
             if (parseFloat(t1) > parseFloat(t2)) t1Bold = `**${t1}**`;
             else if (parseFloat(t2) > parseFloat(t1)) t2Bold = `**${t2}**`;
           }
         }
 
-        // Append stat row with fixed-width formatting
-        message += `${stat.padEnd(statColWidth)} | ${t1Bold.toString().padEnd(valColWidth)} | ${t2Bold}\n`;
+        // Fixed-width formatting
+        message += `${stat.padEnd(statColWidth)}|     ${t1Bold.toString().padEnd(valColWidth)}| ${t2Bold.toString().padEnd(valColWidth)}\n`;
       });
 
       await interaction.editReply(message);

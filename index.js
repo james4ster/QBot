@@ -139,22 +139,45 @@ client.on('interactionCreate', async (interaction) => {
         'PS','PSA','PS%'
       ];
 
-      // Initialize message string
-      let message = '';
-
       // Fixed-width padding helper
       const pad = (str, len = 7) => str.toString().padEnd(len, ' ');
 
-      // Team abbreviations inside the block, slightly pushed over
-      message += `${pad('', 10)}${pad(team1Abbr, 8)}  ${pad(team2Abbr, 8)}\n`;
-      message += '----------------------------\n'; // dashed line without |
+      // ==== Build Table ====
+      let message = '';
 
-      // Add all stats
+      // Team abbreviations line (2nd team pushed 2 spaces)
+      message += `${pad('', 10)}${pad(team1Abbr, 8)}${pad('  ' + team2Abbr, 8)}\n`;
+      message += '-------------------------\n';
+
+      // Stats rows
       statsToCompare.forEach(stat => {
         const t1 = team1Stats[stat] ?? '-';
         const t2 = team2Stats[stat] ?? '-';
         message += `${pad(stat)} | ${pad(t1)} | ${pad(t2)}\n`;
       });
+
+      // ==== Category LEADER ====
+      const team1Wins = [];
+      const team2Wins = [];
+
+      statsToCompare.forEach(stat => {
+        const t1 = parseFloat(team1Stats[stat]);
+        const t2 = parseFloat(team2Stats[stat]);
+        if (isNaN(t1) || isNaN(t2)) return;
+
+        // Stats where lower is better
+        if (['L','GA','GA/G','SA/G','SD'].includes(stat)) {
+          if (t1 < t2) team1Wins.push(stat);
+          else if (t2 < t1) team2Wins.push(stat);
+        } else {
+          if (t1 > t2) team1Wins.push(stat);
+          else if (t2 > t1) team2Wins.push(stat);
+        }
+      });
+
+      message += `\nCategory Leader:\n`;
+      message += `${team1Abbr} leads in: ${team1Wins.join(', ') || 'None'}\n`;
+      message += `${team2Abbr} leads in: ${team2Wins.join(', ') || 'None'}\n`;
 
       // Wrap entire block in code block
       await interaction.editReply({ content: `\`\`\`\n${message}\`\`\`` });
@@ -168,6 +191,7 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
   }
+
 
 
 

@@ -146,15 +146,14 @@ client.on('interactionCreate', async (interaction) => {
       // ✅ Add emojis above the code block
       let message = `${team1Emoji}       ${team2Emoji}\n\`\`\`\n`;
 
-      // Fixed-width padding helper
-      const pad = (str, len = 7) => str.toString().padEnd(len, ' ');
+      const statColWidth = 7;   // width of the stat name column
+      const valueColWidth = 8;  // width of each team value column, including padding
+      const pad = (str, len) => str.toString().padEnd(len, ' ');
 
-      // Column widths
-      const statColWidth = 7;
-      const valueColWidth = 7;
-
-      // Header: team abbreviations inside code block
-      message += `${' '.repeat(statColWidth)}| ${team1Abbr.padEnd(valueColWidth)}| ${team2Abbr.padEnd(valueColWidth)}\n`;
+      // Team header inside code block
+      // Pipe + space before first team column counts as 2 chars
+      // So we need 2 less spaces in the first padding
+      message += ' '.repeat(statColWidth - 2) + `| ${team1Abbr.padEnd(valueColWidth)}| ${team2Abbr.padEnd(valueColWidth)}\n`;
 
       // Divider line
       message += `${'-'.repeat(statColWidth)}|${'-'.repeat(valueColWidth + 1)}|${'-'.repeat(valueColWidth + 1)}\n`;

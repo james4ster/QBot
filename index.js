@@ -159,7 +159,8 @@ client.on('interactionCreate', async (interaction) => {
       message += '```\n';
 
       // Add team abbreviations inside the block
-      message += `${pad('', 7)}| ${pad(team1Abbr)}| ${pad(team2Abbr)}\n`;
+      message += `${pad('', 5)}| ${pad(team1Abbr)}| ${pad(team2Abbr)}\n`;
+
 
       // Add stats rows
       statsToCompare.forEach(stat => {

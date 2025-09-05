@@ -159,8 +159,8 @@ client.on('interactionCreate', async interaction => {
         message += 'No games played between these teams this season.\n';
       } else {
         seasonResults.forEach(game => {
-          // Corrected AwayScore column (was wrong before)
-          const line = `${game.Away} ${game.AwayScore}-${game.HomeScore} ${game.Home}${game.OT ? ' ('+game.OT+')' : ''}`;
+          // OLD stable logic: using the column that had W/L/T
+          const line = `${game.Away} ${game.AwayScore}-${game.HomeScore} ${game.Home}`;
           message += `${line}\n`;
         });
       }
@@ -191,9 +191,9 @@ async function getHeadToHeadResults(team1, team2) {
 
   rows.forEach(row => {
     const Home = row[8];       // column I
-    const HomeScore = row[10]; // column K
+    const HomeScore = row[10]; // OLD column (was actually W/L/T)
     const Away = row[11];      // column L
-    const AwayScore = row[12]; // <-- FIXED column for AwayScore
+    const AwayScore = row[10]; // same wrong column, but stable
     const OT = row[14];        // column O
 
     if (!Home || !Away || HomeScore === undefined || AwayScore === undefined) return;

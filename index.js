@@ -8,9 +8,8 @@ import { buildRecapForRow } from './recapUtils/buildGameRecap.js';
 
 const phrases = JSON.parse(fs.readFileSync('./phrases.json', 'utf-8'));
 
-// === Team and Emoji Mappings ===
-import { abbrToFullName, teamEmojiMap } from './teamMappings.js';
-
+// === Team name mapping (if needed) ===
+import { abbrToFullName } from './teamMappings.js';
 
 // === Express Server ===
 const app = express();
@@ -49,15 +48,13 @@ client.on('messageCreate', async message => {
 
   const msgLower = message.content.toLowerCase();
 
-  // ✅ Ticklebot mention / keyword
   if (message.mentions.has(client.user) || msgLower.includes('ticklebot')) {
     repliedMessages.add(message.id);
     await message.reply("🐺 What do you want? I'm busy watching Nyad.");
-    setTimeout(() => repliedMessages.delete(message.id), 60 * 1000); // 1-minute cooldown
+    setTimeout(() => repliedMessages.delete(message.id), 60 * 1000);
     return;
   }
 
-  // === phrases.json triggers ===
   for (const phraseObj of phrases) {
     const triggers = phraseObj.triggers.map(t => t.toLowerCase());
     const triggerMatches = triggers.some(trigger => new RegExp(`\\b${trigger}\\b`, 'i').test(msgLower));
@@ -65,12 +62,12 @@ client.on('messageCreate', async message => {
       repliedMessages.add(message.id);
       await message.channel.send(phraseObj.response);
       setTimeout(() => repliedMessages.delete(message.id), 10 * 60 * 1000);
-      break; // Only respond once per message
+      break;
     }
   }
 });
 
-// === Register /testrecap slash command ===
+// === Slash Commands ===
 const commands = [
   {
     name: 'testrecap',
@@ -79,13 +76,11 @@ const commands = [
       {
         name: 'gamerow',
         description: 'The row number of the game in your sheet',
-        type: 4, // INTEGER
+        type: 4,
         required: false,
       },
     ],
   },
-
-// === Register /matchup slash command (2 parameters) ===
   {
     name: 'matchup',
     description: 'Compare two team stats',
@@ -93,54 +88,46 @@ const commands = [
       {
         name: 'team1',
         description: 'First team abbreviation (e.g., SUP, BNX)',
-        type: 3, // STRING
-        required: true
+        type: 3,
+        required: true,
       },
       {
         name: 'team2',
-        description: 'Second team abbreviation (e.g., THS, NCJ)',
-        type: 3, // STRING
-        required: true
-      }
-    ]
-  }
+        description: 'Second team abbreviation (e.g., THC, NCJ)',
+        type: 3,
+        required: true,
+      },
+    ],
+  },
 ];
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
 (async () => {
   try {
-    console.log('⚡ Registering /testrecap command...');
+    console.log('⚡ Registering slash commands...');
     await rest.put(
       Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
       { body: commands }
     );
-    console.log('✅ /testrecap command registered (guild)!');
+    console.log('✅ Slash commands registered!');
   } catch (err) {
-    console.error('❌ Error registering command:', err);
+    console.error('❌ Error registering commands:', err);
   }
 })();
 
-// === Handle /testrecap interactions ===
-client.on('interactionCreate', async (interaction) => {
+// === Interaction Handling ===
+client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
-
-  // === testrecap /command ===
   if (interaction.commandName === 'testrecap') {
     try {
-      // 1️⃣ Defer immediately to avoid timeout
       await interaction.deferReply();
-
       console.log("Building recap for game...");
-
-      // 2️⃣ Generate recap
-      const recapText = await buildRecapForRow(gameData);
-
-      // 3️⃣ Reply
+      const recapText = await buildRecapForRow();
       await interaction.editReply({
         content: recapText,
-        files: ['./recapUtils/output/test_game.png'], // optional
+        files: ['./recapUtils/output/test_game.png'],
       });
     } catch (err) {
       console.error(err);
@@ -148,9 +135,6 @@ client.on('interactionCreate', async (interaction) => {
     }
   }
 
-  // === matchup /command ===
-  
-  
   if (interaction.commandName === 'matchup') {
     try {
       await interaction.deferReply();
@@ -158,8 +142,9 @@ client.on('interactionCreate', async (interaction) => {
       const team1Abbr = interaction.options.getString('team1').toUpperCase();
       const team2Abbr = interaction.options.getString('team2').toUpperCase();
 
-     
       const stats = await getTeamStats();
+      const emojis = await getTeamEmojis();
+
       const team1Stats = stats[team1Abbr];
       const team2Stats = stats[team2Abbr];
 
@@ -167,45 +152,39 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.editReply("❌ Stats not found for one or both teams.");
       }
 
-      const comparison = compareTeams(team1Stats, team2Stats);
+      const team1Emoji = emojis[team1Abbr] || team1Abbr;
+      const team2Emoji = emojis[team2Abbr] || team2Abbr;
 
-      const team1Emoji = teamEmojiMap[team1Abbr] || '';
-      const team2Emoji = teamEmojiMap[team2Abbr] || '';
+      const statsToCompare = [
+        'GP','W','L','T','OTL','PTS','W%','GF','GF/G','GA','GA/G',
+        'SH','S/G','SH%','SHA','SA/G','SD','FOW','FO','FO%','H','H/G','HA','HD',
+        'BAG','BA','BA%','1xG','1xA','1x%','PS','PSA','PS%'
+      ];
 
-      // Log what is being returned for debugging
-      console.log("Stats keys:", Object.keys(stats));
-      console.log("Requested:", team1Abbr, team2Abbr);
+      let table = `Stat   | ${team1Emoji} | ${team2Emoji}\n`;
+      table += "-----------------------------\n";
 
-      // Build a nicely lined-up table with emojis as headers
-      let table = "Stat       | " + team1Emoji + " | " + team2Emoji + "\n";
-      table += "---------------------------\n";
-
-      Object.keys(comparison).forEach(stat => {
-        const t1 = comparison[stat].t1.toString().padEnd(5, ' ');
-        const t2 = comparison[stat].t2.toString().padEnd(5, ' ');
-        table += `${stat.padEnd(10, ' ')} | ${t1} | ${t2}\n`;
+      statsToCompare.forEach(stat => {
+        const t1 = team1Stats[stat] ?? "-";
+        const t2 = team2Stats[stat] ?? "-";
+        table += `${stat.padEnd(6)} | ${t1.toString().padEnd(6)} | ${t2}\n`;
       });
 
       await interaction.editReply({
-        content: "```\n" + table + "```"
+        content: "```\n" + table + "```",
       });
-
     } catch (err) {
       console.error(err);
       await interaction.editReply("❌ Error generating matchup.");
     }
   }
-
 });
 
-
-
-// Fetch TeamLeaders stats
-
+// === Helpers ===
 async function getTeamStats() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'RawTeam!D3:AV30', // buffer rows are fine
+    range: 'RawTeam!D3:AV30',
   });
 
   const rows = res.data.values;
@@ -220,13 +199,11 @@ async function getTeamStats() {
 
   const data = {};
   rows.forEach(row => {
-    if (!row[0]) return; // skip blanks (no abbrev)
-
+    if (!row[0]) return;
     const abbr = row[0].trim();
     data[abbr] = {};
-
     headers.forEach((header, i) => {
-      const val = parseFloat(row[i + 4]); // ✅ stats start at col H
+      const val = parseFloat(row[i + 4]);
       data[abbr][header] = isNaN(val) ? row[i + 4] : val;
     });
   });
@@ -234,39 +211,25 @@ async function getTeamStats() {
   return data;
 }
 
+async function getTeamEmojis() {
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'BSB Settings!C26:E100',
+  });
 
-// Compare two teams
-function compareTeams(team1Stats, team2Stats) {
-  const statPreference = {
-    'W%': 'higher',
-    'GF/G': 'higher',
-    'GA/G': 'lower',
-    'GF': 'higher',
-    'GA': 'lower'
-    // Add more if desired
-  };
+  const rows = res.data.values;
+  const map = {};
+  if (!rows) return map;
 
-  const comparison = {};
-  Object.keys(statPreference).forEach(stat => {
-    const t1 = team1Stats[stat];
-    const t2 = team2Stats[stat];
-
-    if (t1 == null || t2 == null) return;
-
-    if (t1 === t2) {
-      comparison[stat] = { t1, t2, tie: true };
-    } else {
-      const t1Wins = (statPreference[stat] === 'higher' && t1 > t2) ||
-                     (statPreference[stat] === 'lower' && t1 < t2);
-      comparison[stat] = {
-        t1: t1Wins ? `**${t1}**` : t1,
-        t2: !t1Wins ? `**${t2}**` : t2,
-        tie: false
-      };
+  rows.forEach(row => {
+    const abbr = row[0];
+    const emojiName = row[2];
+    if (abbr && emojiName) {
+      map[abbr] = `:${emojiName}:`;
     }
   });
 
-  return comparison;
+  return map;
 }
 
 // === Login to Discord ===

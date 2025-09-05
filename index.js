@@ -160,11 +160,11 @@ client.on('interactionCreate', async (interaction) => {
       if (seasonResults.length === 0) {
         message += 'No games played between these teams this season.\n';
       } else {
-        seasonResults.forEach(game => {
-          // Format: AwayTeam Abbr AwayScore - HomeScore HomeTeam Abbr
-          const line = `${game.Away} ${game.AwayScore}-${game.HomeScore} ${game.Home}`;
-          message += `${line}\n`;
-        });
+          seasonResults.forEach(game => {
+            // Format: AwayTeam Abbr AwayScore - HomeScore HomeTeam Abbr
+            const line = `${game.Away} ${game.AwayScore}-${game.HomeScore} ${game.Home}`;
+            message += `${line}\n`;
+          });
       }
 
       await interaction.editReply({ content: `\`\`\`\n${message}\`\`\`` });
@@ -183,7 +183,7 @@ client.on('interactionCreate', async (interaction) => {
   async function getHeadToHeadResults(team1, team2) {
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: 'RawSchedule!A2:Z1000', // adjust if needed
+      range: 'RawSchedule!A2:Z1000',
     });
     const rows = res.data.values;
     if (!rows || !rows.length) return [];
@@ -191,9 +191,9 @@ client.on('interactionCreate', async (interaction) => {
     const results = [];
 
     rows.forEach(row => {
-      const Home = row[8]; // column I
-      const Away = row[11]; // column L
-      const HomeScore = row[9]; // column K
+      const Home = row[8];       // column I
+      const HomeScore = row[10]; // column K
+      const Away = row[11];      // column L
       const AwayScore = row[13]; // column N
 
       if (!Home || !Away || HomeScore === undefined || AwayScore === undefined) return;
@@ -210,11 +210,6 @@ client.on('interactionCreate', async (interaction) => {
 
     return results;
   }
-
-
-
-
-
 
 
 });

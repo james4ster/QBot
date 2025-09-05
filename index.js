@@ -174,40 +174,41 @@ async function getTeamStats() {
 
   // ✅ Corrected mapping for only the stats you wanted
   const statColumnMap = {
-    'GP': 7,    // H
-    'W': 8,     // I
-    'L': 9,     // J
-    'T': 10,    // K
-    'OTL': 11,  // L
-    'PTS': 12,  // M
-    'W%': 13,   // N
-    'GF': 14,   // O
-    'GF/G': 15, // P
-    'GA': 16,   // Q
-    'GA/G': 17, // R
-    'SH': 18,   // S
-    'S/G': 19,  // T
-    'SH%': 20,  // U
-    'SHA': 21,  // V
-    'SA/G': 22, // W
-    'SD': 23,   // X
-    'FOW': 31,  // AF
-    'FO': 32,   // AG
-    'FO%': 33,  // AH
-    'H': 34,    // AI
-    'H/G': 35,  // AJ
-    'HA': 36,   // AK
-    'HD': 37,   // AL
-    'BAG': 39,  // AN
-    'BA': 40,   // AO
-    'BA%': 41,  // AP
-    '1xG': 42,  // AQ
-    '1xA': 43,  // AR
-    '1x%': 44,  // AS
-    'PS': 45,   // AT
-    'PSA': 46,  // AU
-    'PS%': 47   // AV
+    'GP': 3,    // column G in sheet -> row[3]
+    'W': 4,     // H -> row[4]
+    'L': 5,     // I -> row[5]
+    'T': 6,     // J -> row[6]
+    'OTL': 7,   // K -> row[7]
+    'PTS': 8,   // L -> row[8]
+    'W%': 9,    // M -> row[9]
+    'GF': 10,   // N -> row[10]
+    'GF/G': 11, // O -> row[11]
+    'GA': 12,   // P -> row[12]
+    'GA/G': 13, // Q -> row[13]
+    'SH': 14,   // R -> row[14]
+    'S/G': 15,  // S -> row[15]
+    'SH%': 16,  // T -> row[16]
+    'SHA': 17,  // U -> row[17]
+    'SA/G': 18, // V -> row[18]
+    'SD': 19,   // W -> row[19]
+    'FOW': 27,  // AF -> row[27]
+    'FO': 28,   // AG -> row[28]
+    'FO%': 29,  // AH -> row[29]
+    'H': 30,    // AI -> row[30]
+    'H/G': 31,  // AJ -> row[31]
+    'HA': 32,   // AK -> row[32]
+    'HD': 33,   // AL -> row[33]
+    'BAG': 35,  // AN -> row[35]
+    'BA': 36,   // AO -> row[36]
+    'BA%': 37,  // AP -> row[37]
+    '1xG': 38,  // AQ -> row[38]
+    '1xA': 39,  // AR -> row[39]
+    '1x%': 40,  // AS -> row[40]
+    'PS': 41,   // AT -> row[41]
+    'PSA': 42,  // AU -> row[42]
+    'PS%': 43   // AV -> row[43]
   };
+
 
 
   const headers = Object.keys(statColumnMap);

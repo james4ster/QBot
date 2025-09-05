@@ -174,15 +174,41 @@ async function getTeamStats() {
 
   // ✅ Corrected mapping for only the stats you wanted
   const statColumnMap = {
-    'GP': 4,  'W': 5,  'L': 6,  'T': 7,  'OTL': 8,  'PTS': 9, 'W%': 10,
-    'GF': 11, 'GF/G': 12, 'GA': 13, 'GA/G': 14,
-    'SH': 15, 'S/G': 16, 'SH%': 17, 'SHA': 18, 'SA/G': 19, 'SD': 20,
-    'FOW': 31, 'FO': 32, 'FO%': 33,
-    'H': 34, 'H/G': 35, 'HA': 36, 'HD': 37,
-    'BAG': 39, 'BA': 40, 'BA%': 41,
-    '1xG': 42, '1xA': 43, '1x%': 44,
-    'PS': 45, 'PSA': 46, 'PS%': 47
+    'GP': 7,    // H
+    'W': 8,     // I
+    'L': 9,     // J
+    'T': 10,    // K
+    'OTL': 11,  // L
+    'PTS': 12,  // M
+    'W%': 13,   // N
+    'GF': 14,   // O
+    'GF/G': 15, // P
+    'GA': 16,   // Q
+    'GA/G': 17, // R
+    'SH': 18,   // S
+    'S/G': 19,  // T
+    'SH%': 20,  // U
+    'SHA': 21,  // V
+    'SA/G': 22, // W
+    'SD': 23,   // X
+    'FOW': 31,  // AF
+    'FO': 32,   // AG
+    'FO%': 33,  // AH
+    'H': 34,    // AI
+    'H/G': 35,  // AJ
+    'HA': 36,   // AK
+    'HD': 37,   // AL
+    'BAG': 39,  // AN
+    'BA': 40,   // AO
+    'BA%': 41,  // AP
+    '1xG': 42,  // AQ
+    '1xA': 43,  // AR
+    '1x%': 44,  // AS
+    'PS': 45,   // AT
+    'PSA': 46,  // AU
+    'PS%': 47   // AV
   };
+
 
   const headers = Object.keys(statColumnMap);
 

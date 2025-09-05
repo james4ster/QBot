@@ -7,7 +7,6 @@ import fs from 'fs';
 import { buildRecapForRow } from './recapUtils/buildGameRecap.js';
 import { abbrToFullName, teamEmojiMap } from './teamMappings.js';
 
-
 // === Phrase triggers ===
 const phrases = JSON.parse(fs.readFileSync('./phrases.json', 'utf-8'));
 
@@ -101,7 +100,7 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
   // ==== /testrecap ====
-  /* ==== COMMENTING OUT UNTIL READY TO TEST ====
+  /* ==== COMMENTED OUT UNTIL READY TO TEST ====
   if (interaction.commandName === 'testrecap') {
     try {
       await interaction.deferReply();
@@ -114,7 +113,8 @@ client.on('interactionCreate', async (interaction) => {
       console.error(err);
       await interaction.editReply("❌ Error generating recap");
     }
-  } */
+  }
+  ==== END COMMENT ===*/
 
   // ==== /matchup ====
   if (interaction.commandName === 'matchup') {
@@ -142,11 +142,9 @@ client.on('interactionCreate', async (interaction) => {
       const pad = (str, len = 7) => str.toString().padEnd(len, ' ');
 
       let message = '';
-      // Team abbreviations row (padded for alignment)
       message += `${pad('', 10)}${pad(team1Abbr, 8)}${pad(team2Abbr, 10)}\n`;
       message += '----------------------------\n';
 
-      // Stats rows
       statsToCompare.forEach(stat => {
         const t1 = team1Stats[stat] ?? '-';
         const t2 = team2Stats[stat] ?? '-';
@@ -160,59 +158,49 @@ client.on('interactionCreate', async (interaction) => {
       if (seasonResults.length === 0) {
         message += 'No games played between these teams this season.\n';
       } else {
-          seasonResults.forEach(game => {
-            // Format: AwayTeam Abbr AwayScore - HomeScore HomeTeam Abbr
-            const line = `${game.Away} ${game.AwayScore}-${game.HomeScore} ${game.Home}`;
-            message += `${line}\n`;
-          });
+        seasonResults.forEach(game => {
+          const line = `${game.Away} ${game.AwayScore}-${game.HomeScore} ${game.Home}${game.OT ? ' ('+game.OT+')' : ''}`;
+          message += `${line}\n`;
+        });
       }
 
       await interaction.editReply({ content: `\`\`\`\n${message}\`\`\`` });
 
     } catch (err) {
       console.error(err);
-      try {
-        await interaction.editReply("❌ Error generating matchup stats.");
-      } catch (_) {
-        console.log('Failed to send reply — interaction may have expired.');
-      }
+      try { await interaction.editReply("❌ Error generating matchup stats."); } 
+      catch (_) { console.log('Failed to send reply — interaction may have expired.'); }
     }
   }
-
-  // === Get Head-to-Head Results ===
-  async function getHeadToHeadResults(team1, team2) {
-    const res = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: 'RawSchedule!A2:Z1000',
-    });
-    const rows = res.data.values;
-    if (!rows || !rows.length) return [];
-
-    const results = [];
-
-    rows.forEach(row => {
-      const Home = row[8];       // column I
-      const HomeScore = row[10]; // column K
-      const Away = row[11];      // column L
-      const AwayScore = row[13]; // column N
-
-      if (!Home || !Away || HomeScore === undefined || AwayScore === undefined) return;
-
-      if ((Home === team1 && Away === team2) || (Home === team2 && Away === team1)) {
-        results.push({
-          Home,
-          Away,
-          HomeScore,
-          AwayScore
-        });
-      }
-    });
-
-    return results;
-  }
-
-
 });
+
+// === Get Head-to-Head Results ===
+async function getHeadToHeadResults(team1, team2) {
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'RawSchedule!A2:Z1000',
+  });
+  const rows = res.data.values;
+  if (!rows || !rows.length) return [];
+
+  const results = [];
+
+  rows.forEach(row => {
+    const Home = row[8];       // column I
+    const HomeScore = row[10]; // column K
+    const Away = row[11];      // column L
+    const AwayScore = row[13]; // column N
+    const OT = row[14];        // column O
+
+    if (!Home || !Away || HomeScore === undefined || AwayScore === undefined) return;
+
+    if ((Home === team1 && Away === team2) || (Home === team2 && Away === team1)) {
+      results.push({ Home, Away, HomeScore, AwayScore, OT });
+    }
+  });
+
+  return results;
+}
 
 // === Get Team Stats ===
 async function getTeamStats() {
@@ -223,42 +211,14 @@ async function getTeamStats() {
   const rows = res.data.values;
   if (!rows || !rows.length) return {};
 
-  // ✅ Corrected mapping for only the stats you wanted
-  // Column indices are zero-based relative to column D
   const statColumnMap = {
-    'GP': 4,    // H
-    'W': 5,     // I
-    'L': 6,     // J
-    'T': 7,     // K
-    'OTL': 8,   // L
-    'PTS': 9,   // M
-    'W%': 10,   // N
-    'GF': 11,   // O
-    'GF/G': 12, // P
-    'GA': 13,   // Q
-    'GA/G': 14, // R
-    'SH': 15,   // S
-    'S/G': 16,  // T
-    'SH%': 17,  // U
-    'SHA': 18,  // V
-    'SA/G': 19, // W
-    'SD': 20,   // X
-    'FOW': 28,  // AF
-    'FO': 29,   // AG
-    'FO%': 30,  // AH
-    'H': 31,    // AI
-    'H/G': 32,  // AJ
-    'HA': 33,   // AK
-    'HD': 34,   // AL
-    'BAG': 36,  // AN
-    'BA': 37,   // AO
-    'BA%': 38,  // AP
-    '1xG': 39,  // AQ
-    '1xA': 40,  // AR
-    '1x%': 41,  // AS
-    'PS': 42,   // AT
-    'PSA': 43,  // AU
-    'PS%': 44   // AV
+    'GP': 4,    'W': 5,     'L': 6,     'T': 7,     'OTL': 8,
+    'PTS': 9,   'W%': 10,   'GF': 11,   'GF/G': 12, 'GA': 13,
+    'GA/G': 14, 'SH': 15,   'S/G': 16,  'SH%': 17,  'SHA': 18,
+    'SA/G': 19, 'SD': 20,   'FOW': 28,  'FO': 29,   'FO%': 30,
+    'H': 31,    'H/G': 32,  'HA': 33,   'HD': 34,   'BAG': 36,
+    'BA': 37,   'BA%': 38,  '1xG': 39,  '1xA': 40,  '1x%': 41,
+    'PS': 42,   'PSA': 43,  'PS%': 44
   };
 
   const headers = Object.keys(statColumnMap);

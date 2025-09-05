@@ -161,8 +161,8 @@ client.on('interactionCreate', async (interaction) => {
         message += 'No games played between these teams this season.\n';
       } else {
         seasonResults.forEach(game => {
-          // Format: Away v Home | Score
-          const line = `${game.Away} v ${game.Home} | ${game.AwayScore}-${game.HomeScore}`;
+          // Format: AwayTeam Abbr AwayScore - HomeScore HomeTeam Abbr
+          const line = `${game.Away} ${game.AwayScore}-${game.HomeScore} ${game.Home}`;
           message += `${line}\n`;
         });
       }

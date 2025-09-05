@@ -162,15 +162,17 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 // === Get Team Stats ===
+// === Get Team Stats ===
 async function getTeamStats() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'RawTeam!D3:AV30', // data starts at column D
+    range: 'RawTeam!D3:AV30', // D=0, AV is last column we care about
   });
   const rows = res.data.values;
   if (!rows || !rows.length) return {};
 
-  // Corrected mapping relative to column D
+  // ✅ Corrected mapping for only the stats you wanted
+  // Column indices are zero-based relative to column D
   const statColumnMap = {
     'GP': 4,    // H
     'W': 5,     // I
@@ -208,22 +210,23 @@ async function getTeamStats() {
   };
 
   const headers = Object.keys(statColumnMap);
-  const data = {};
 
+  const data = {};
   rows.forEach(row => {
     if (!row[0]) return;
-    const abbr = row[0].trim(); // column D is team abbreviation
+    const abbr = row[0].trim(); // Team abbreviation in column D
     data[abbr] = {};
-
     headers.forEach(header => {
       const colIndex = statColumnMap[header];
-      const val = row[colIndex]; 
-      data[abbr][header] = val ?? '-';
+      const val = row[colIndex];
+      const numVal = parseFloat(val);
+      data[abbr][header] = isNaN(numVal) ? val ?? '-' : numVal;
     });
   });
 
   return data;
 }
+
 
 // === Get Discord Emoji Map from BSB Settings ===
 async function getDiscordEmojiMap() {

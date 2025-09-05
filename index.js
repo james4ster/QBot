@@ -131,7 +131,7 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.editReply("❌ Stats not found for one or both teams.");
       }
 
-      // Fetch emojis from teamEmojiMap using abbreviations
+      // Fetch emojis
       const team1Emoji = teamEmojiMap[team1Abbr] || team1Abbr;
       const team2Emoji = teamEmojiMap[team2Abbr] || team2Abbr;
 
@@ -142,32 +142,22 @@ client.on('interactionCreate', async (interaction) => {
         'PS','PSA','PS%'
       ];
 
-      // Build header with emojis above their respective columns
-      let message = "```\n"; // start code block
-      message += `${' '.repeat(10)}${team1Emoji}${' '.repeat(7)}${team2Emoji}\n\n`;
+      // Put emojis **above** code block
+      let message = `${' '.repeat(10)}${team1Emoji}${' '.repeat(7)}${team2Emoji}\n\n`;
 
-      // Fixed-width padding for stats
+      // Start code block for stats
+      message += "```\n";
+
       const pad = (str, len = 7) => str.toString().padEnd(len, ' ');
 
       statsToCompare.forEach(stat => {
         let t1 = team1Stats[stat] ?? '-';
         let t2 = team2Stats[stat] ?? '-';
 
-        let t1Bold = t1, t2Bold = t2;
-        if (!isNaN(parseFloat(t1)) && !isNaN(parseFloat(t2))) {
-          if (['L','GA','GA/G','SA/G','SD'].includes(stat)) {
-            if (parseFloat(t1) < parseFloat(t2)) t1Bold = `**${t1}**`;
-            else if (parseFloat(t2) < parseFloat(t1)) t2Bold = `**${t2}**`;
-          } else {
-            if (parseFloat(t1) > parseFloat(t2)) t1Bold = `**${t1}**`;
-            else if (parseFloat(t2) > parseFloat(t1)) t2Bold = `**${t2}**`;
-          }
-        }
-
-        message += `${pad(stat)} | ${pad(t1Bold)} | ${pad(t2Bold)}\n`;
+        message += `${pad(stat)} | ${pad(t1)} | ${pad(t2)}\n`;
       });
 
-      message += "```"; // close code block
+      message += "```"; // end code block
 
       await interaction.editReply(message);
 
@@ -176,6 +166,7 @@ client.on('interactionCreate', async (interaction) => {
       await interaction.editReply("❌ Error generating matchup stats.");
     }
   }
+
 
 });
 

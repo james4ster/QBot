@@ -139,15 +139,12 @@ client.on('interactionCreate', async (interaction) => {
         'PS','PSA','PS%'
       ];
 
-      // Fixed-width padding helper
       const pad = (str, len = 7) => str.toString().padEnd(len, ' ');
 
-      // ==== Build Table ====
       let message = '';
-
-      // Team abbreviations line (2nd team pushed 2 spaces)
-      message += `${pad('', 10)}${pad(team1Abbr, 8)}${pad('  ' + team2Abbr, 8)}\n`;
-      message += '-------------------------\n';
+      // Team abbreviations row
+      message += `${pad('', 10)}${pad(team1Abbr, 8)}${pad(team2Abbr, 8)}\n`;
+      message += '---------- -------- --------\n';
 
       // Stats rows
       statsToCompare.forEach(stat => {
@@ -156,30 +153,20 @@ client.on('interactionCreate', async (interaction) => {
         message += `${pad(stat)} | ${pad(t1)} | ${pad(t2)}\n`;
       });
 
-      // ==== Category LEADER ====
-      const team1Wins = [];
-      const team2Wins = [];
+      // ===== Season Results Section =====
+      message += `\nSeason Results:\n`;
 
-      statsToCompare.forEach(stat => {
-        const t1 = parseFloat(team1Stats[stat]);
-        const t2 = parseFloat(team2Stats[stat]);
-        if (isNaN(t1) || isNaN(t2)) return;
+      const seasonResults = await getHeadToHeadResults(team1Abbr, team2Abbr);
+      if (seasonResults.length === 0) {
+        message += 'No games played between these teams this season.\n';
+      } else {
+        seasonResults.forEach(game => {
+          // Format: Away v Home | Score
+          const line = `${game.Away} v ${game.Home} | ${game.AwayScore}-${game.HomeScore}`;
+          message += `${line}\n`;
+        });
+      }
 
-        // Stats where lower is better
-        if (['L','GA','GA/G','SA/G','SD', 'HA'].includes(stat)) {
-          if (t1 < t2) team1Wins.push(stat);
-          else if (t2 < t1) team2Wins.push(stat);
-        } else {
-          if (t1 > t2) team1Wins.push(stat);
-          else if (t2 > t1) team2Wins.push(stat);
-        }
-      });
-
-      message += `\nCategory Leader:\n`;
-      message += `${team1Abbr} leads in: ${team1Wins.join(', ') || 'None'}\n\n`;
-      message += `${team2Abbr} leads in: ${team2Wins.join(', ') || 'None'}\n`;
-
-      // Wrap entire block in code block
       await interaction.editReply({ content: `\`\`\`\n${message}\`\`\`` });
 
     } catch (err) {
@@ -191,6 +178,39 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
   }
+
+  // === Get Head-to-Head Results ===
+  async function getHeadToHeadResults(team1, team2) {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'RawSchedule!A2:Z1000', // adjust if needed
+    });
+    const rows = res.data.values;
+    if (!rows || !rows.length) return [];
+
+    const results = [];
+
+    rows.forEach(row => {
+      const H = row[4]; // Home team abbreviation column
+      const A = row[3]; // Away team abbreviation column
+      const Hscore = row[7]; // Home score column
+      const Ascore = row[9]; // Away score column
+
+      if (!H || !A || Hscore === undefined || Ascore === undefined) return;
+
+      if ((H === team1 && A === team2) || (H === team2 && A === team1)) {
+        results.push({
+          Home: H,
+          Away: A,
+          HomeScore: Hscore,
+          AwayScore: Ascore
+        });
+      }
+    });
+
+    return results;
+  }
+
 
 
 

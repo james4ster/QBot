@@ -149,6 +149,8 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   // === matchup /command ===
+  
+  
   if (interaction.commandName === 'matchup') {
     try {
       await interaction.deferReply();
@@ -169,6 +171,10 @@ client.on('interactionCreate', async (interaction) => {
 
       const team1Emoji = teamEmojiMap[team1Abbr] || '';
       const team2Emoji = teamEmojiMap[team2Abbr] || '';
+
+      // Log what is being returned for debugging
+      console.log("Stats keys:", Object.keys(stats));
+      console.log("Requested:", team1Abbr, team2Abbr);
 
       // Build a nicely lined-up table with emojis as headers
       let table = "Stat       | " + team1Emoji + " | " + team2Emoji + "\n";
@@ -195,17 +201,16 @@ client.on('interactionCreate', async (interaction) => {
 
 
 // Fetch TeamLeaders stats
+
 async function getTeamStats() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'RawTeam!D3:AV30', // adjust row limit if needed
+    range: 'RawTeam!D3:AV30', // buffer rows are fine
   });
 
   const rows = res.data.values;
   if (!rows || rows.length < 1) return {};
 
-  // First row in this range is actually row 3 in the sheet
-  // We'll manually define headers for the stats columns
   const headers = [
     'GP','W','L','T','OTL','PTS','W%','GF','GF/G','GA','GA/G',
     'SH','S/G','SH%','SHA','SA/G','SD','PPG','PP','PP%',
@@ -215,16 +220,20 @@ async function getTeamStats() {
 
   const data = {};
   rows.forEach(row => {
-    const abbr = row[0]; // column D in sheet
+    if (!row[0]) return; // skip blanks (no abbrev)
+
+    const abbr = row[0].trim();
     data[abbr] = {};
+
     headers.forEach((header, i) => {
-      const val = parseFloat(row[i + 3]); // first stat column starts at H (index 3 in this range)
-      data[abbr][header] = isNaN(val) ? row[i + 3] : val;
+      const val = parseFloat(row[i + 4]); // ✅ stats start at col H
+      data[abbr][header] = isNaN(val) ? row[i + 4] : val;
     });
   });
 
   return data;
 }
+
 
 // Compare two teams
 function compareTeams(team1Stats, team2Stats) {

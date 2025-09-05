@@ -132,7 +132,7 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.editReply("❌ Stats not found for one or both teams.");
       }
 
-      // ✅ Fetch emojis from teamEmojiMap
+      // ✅ Fetch emojis from teamEmojiMap using abbreviations
       const team1Emoji = teamEmojiMap[team1Abbr] || team1Abbr;
       const team2Emoji = teamEmojiMap[team2Abbr] || team2Abbr;
 
@@ -143,45 +143,31 @@ client.on('interactionCreate', async (interaction) => {
         'PS','PSA','PS%'
       ];
 
-      // ✅ Add emojis above the code block
-      let message = `${team1Emoji}       ${team2Emoji}\n\`\`\`\n`;
+      // ✅ Header: emojis outside the block
+      let message = `${team1Emoji}       ${team2Emoji}\n\n`;
 
-      const statColWidth = 7;   // width of the stat name column
-      const valueColWidth = 8;  // width of each team value column, including padding
-      const pad = (str, len) => str.toString().padEnd(len, ' ');
+      // Fixed-width padding
+      const pad = (str, len = 7) => str.toString().padEnd(len, ' ');
 
-      // Team header inside code block
-      // Pipe + space before first team column counts as 2 chars
-      // So we need 2 less spaces in the first padding
-      message += ' '.repeat(statColWidth - 2) + `| ${team1Abbr.padEnd(valueColWidth)}| ${team2Abbr.padEnd(valueColWidth)}\n`;
+      // ✅ Add team abbreviations inside the block
+      message += `${pad('')}| ${pad(team1Abbr)}| ${pad(team2Abbr)}\n`;
+      message += `${'-'.repeat(7)}|${'-'.repeat(8)}|${'-'.repeat(8)}\n`;
 
-      // Divider line
-      message += `${'-'.repeat(statColWidth)}|${'-'.repeat(valueColWidth + 1)}|${'-'.repeat(valueColWidth + 1)}\n`;
-
-      // Stats
+      // Add the stats rows
       statsToCompare.forEach(stat => {
-        let t1 = team1Stats[stat] ?? '-';
-        let t2 = team2Stats[stat] ?? '-';
+        const t1 = team1Stats[stat] ?? '-';
+        const t2 = team2Stats[stat] ?? '-';
         message += `${pad(stat)} | ${pad(t1)} | ${pad(t2)}\n`;
       });
 
-      message += '```'; // close code block
-
-      await interaction.editReply(message);
+      await interaction.editReply('```' + message + '```');
 
     } catch (err) {
       console.error(err);
-      try { // avoid "InteractionNotReplied" errors
-        if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply("❌ Error generating matchup stats.");
-        } else {
-          await interaction.editReply("❌ Error generating matchup stats.");
-        }
-      } catch (err2) {
-        console.error('Error sending fallback reply:', err2);
-      }
+      await interaction.editReply("❌ Error generating matchup stats.");
     }
   }
+
 
 
 

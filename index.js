@@ -134,6 +134,7 @@ client.on('interactionCreate', async (interaction) => {
       const team1Emoji = emojiMap[team1Abbr] || team1Abbr;
       const team2Emoji = emojiMap[team2Abbr] || team2Abbr;
 
+      // Stats to compare
       const statsToCompare = [
         'GP','W','L','T','OTL','PTS','W%','GF','GF/G','GA','GA/G',
         'SH','S/G','SH%','SHA','SA/G','SD','FOW','FO','FO%',
@@ -141,20 +142,48 @@ client.on('interactionCreate', async (interaction) => {
         'PS','PSA','PS%'
       ];
 
-      let table = `${team1Emoji} | ${team2Emoji}\n-----------------------------\n`;
+      const statPreference = {
+        'W%':'higher','GF':'higher','GF/G':'higher','GA':'lower','GA/G':'lower',
+        'SH':'higher','S/G':'higher','SH%':'higher','SHA':'lower','SA/G':'lower','SD':'lower',
+        'FOW':'higher','FO':'higher','FO%':'higher',
+        'H':'higher','H/G':'higher','HA':'lower','HD':'lower',
+        'BAG':'higher','BA':'lower','BA%':'higher','1xG':'higher','1xA':'higher','1x%':'higher',
+        'PS':'higher','PSA':'lower','PS%':'higher','GP':'higher','W':'higher','L':'lower','T':'higher',
+        'OTL':'lower','PTS':'higher'
+      };
+
+      // Show emojis and abbreviations above the table
+      let tableHeader = `${team1Emoji} ${team1Abbr} | ${team2Emoji} ${team2Abbr}`;
+      let table = "```"; // start code block
+
       statsToCompare.forEach(stat => {
         const t1 = team1Stats[stat] ?? '-';
         const t2 = team2Stats[stat] ?? '-';
-        table += `${stat.padEnd(6)} | ${t1.toString().padEnd(6)} | ${t2}\n`;
+        let t1Display = t1;
+        let t2Display = t2;
+
+        if (t1 !== '-' && t2 !== '-' && statPreference[stat]) {
+          if ((statPreference[stat] === 'higher' && t1 > t2) ||
+              (statPreference[stat] === 'lower' && t1 < t2)) {
+            t1Display = `**${t1}**`;
+          } else if (t1 !== t2) {
+            t2Display = `**${t2}**`;
+          }
+        }
+
+        table += `\n${stat.padEnd(6)} | ${t1Display.toString().padEnd(6)} | ${t2Display}`;
       });
 
-      await interaction.editReply({ content: '```\n' + table + '```' });
+      table += "\n```";
+
+      await interaction.editReply(`${tableHeader}\n${table}`);
 
     } catch (err) {
       console.error(err);
       await interaction.editReply("❌ Error generating matchup.");
     }
   }
+
 });
 
 // === Get Team Stats ===
@@ -166,21 +195,28 @@ async function getTeamStats() {
   const rows = res.data.values;
   if (!rows || !rows.length) return {};
 
-  const headers = [
-    'GP','W','L','T','OTL','PTS','W%','GF','GF/G','GA','GA/G',
-    'SH','S/G','SH%','SHA','SA/G','SD','FOW','FO','FO%',
-    'H','H/G','HA','HD','BAG','BA','BA%','1xG','1xA','1x%',
-    'PS','PSA','PS%'
-  ];
+  // Column mapping for RawTeam sheet
+  const statColumnMap = {
+    'GP': 4,  'W': 5,  'L': 6,  'T': 7,  'OTL': 8,  'PTS': 9, 'W%': 10,
+    'GF': 11, 'GF/G': 12, 'GA': 13, 'GA/G': 14,
+    'SH': 15, 'S/G': 16, 'SH%': 17, 'SHA': 18, 'SA/G': 19, 'SD': 20,
+    'FOW': 31, 'FO': 32, 'FO%': 33, 'H': 34, 'H/G': 35, 'HA': 36, 'HD': 37,
+    'BAG': 39, 'BA': 40, 'BA%': 41,
+    '1xG': 42, '1xA': 43, '1x%': 44,
+    'PS': 45, 'PSA': 46, 'PS%': 47
+  };
 
+  const headers = Object.keys(statColumnMap);
   const data = {};
+
   rows.forEach(row => {
     if (!row[0]) return;
     const abbr = row[0].trim();
     data[abbr] = {};
-    headers.forEach((header, i) => {
-      const val = parseFloat(row[i + 4]); // first stat column = H / index 4
-      data[abbr][header] = isNaN(val) ? row[i + 4] : val;
+    headers.forEach(header => {
+      const colIndex = statColumnMap[header];
+      const val = parseFloat(row[colIndex]);
+      data[abbr][header] = isNaN(val) ? row[colIndex] ?? '-' : val;
     });
   });
 
@@ -191,12 +227,12 @@ async function getTeamStats() {
 async function getDiscordEmojiMap() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'BSB Settings!B25:E40',
+    range: 'BSB Settings!B25:F40',
   });
   const rows = res.data.values || [];
   const map = {};
   rows.forEach(row => {
-    if (!row[2] || !row[3]) return; // Team or Emoji ID missing
+    if (!row[3] || !row[2]) return; // Emoji ID or Team missing
     map[row[2].trim()] = `<:${row[4] || row[2]}:${row[3]}>`; // use custom emoji
   });
   return map;

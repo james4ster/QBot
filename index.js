@@ -132,11 +132,11 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.editReply("❌ Stats not found for one or both teams.");
       }
 
-      // ✅ Fetch emojis from teamEmojiMap
+      // Fetch emojis from teamEmojiMap
       const team1Emoji = teamEmojiMap[team1Abbr] || team1Abbr;
       const team2Emoji = teamEmojiMap[team2Abbr] || team2Abbr;
 
-      // Display emojis above the code block
+      // Display emojis outside the code block
       let message = `${team1Emoji}       ${team2Emoji}\n\n`;
 
       const statsToCompare = [
@@ -149,9 +149,10 @@ client.on('interactionCreate', async (interaction) => {
       // Fixed-width padding helper
       const pad = (str, len = 7) => str.toString().padEnd(len, ' ');
 
-      // ✅ Add team abbreviations inside the block above stats (no | before them)
-      message += `${pad('', 7)}${pad(team1Abbr)}${pad(team2Abbr)}\n`;
-      message += '------- -------- --------\n'; // dashed line, no vertical bars
+      // Adjusted padding for team abbreviations
+      // Add 3 spaces before first team, 5 spaces between first and second
+      message += `${pad('', 10)}${pad(team1Abbr, 8)}${pad(team2Abbr, 8)}\n`;
+      message += '---------- -------- --------\n'; // dashed line
 
       // Add all stats
       statsToCompare.forEach(stat => {
@@ -160,6 +161,7 @@ client.on('interactionCreate', async (interaction) => {
         message += `${pad(stat)} | ${pad(t1)} | ${pad(t2)}\n`;
       });
 
+      // Wrap entire block in code block
       await interaction.editReply({ content: `\`\`\`\n${message}\`\`\`` });
 
     } catch (err) {

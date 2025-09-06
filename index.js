@@ -152,7 +152,7 @@ client.on('interactionCreate', async interaction => {
       });
 
       // ===== Season Results Section =====
-      message += `\nHead-to-Head Record:\n`;
+      message += `\nHead-to-Head:\n`;
 
       const seasonResults = await getHeadToHeadResults(team1Abbr, team2Abbr);
 

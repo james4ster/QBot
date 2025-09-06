@@ -218,9 +218,9 @@ async function getHeadToHeadResults(team1, team2) {
   const results = [];
 
   rows.forEach(row => {
-    const Home = row[8];       // column G = HomeTeam
-    const Away = row[11];       // column H = AwayTeam
+    const Home = row[8];       // column I = HomeTeam
     const HomeScore = row[10]; // column K
+    const Away = row[11];      // column L = AwayTeam
     const AwayScore = row[13]; // column N
     const OT = row[14];        // column O
 

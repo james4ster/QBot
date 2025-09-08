@@ -33,7 +33,7 @@ export async function generateRecapText({ gameData, highlights, playerGoals, goa
 You are generating a sarcastic and insulting NHL '95 style recap.
 
 Rules:
-- Host name is "The Schedule Czar".
+- Always mention the host name is "The Schedule Czar".
 - When describing a team, you can include their personality: ${teamPersonalities[gameData.homeTeam] || "a team so bland they don’t even deserve a personality"} vs ${teamPersonalities[gameData.awayTeam] || "a team so bland they don’t even deserve a personality"}.
 - Write exactly 3 short paragraphs.
 - Always incorporate one or both team personality into the response.

@@ -75,7 +75,10 @@ async function overlayRecapElements(templatePath, boxScorePath, homeLogoPath, aw
 export async function generateRecapVideo(boxScoreFile, client) {
   try {
     const fileName = path.basename(boxScoreFile, path.extname(boxScoreFile));
-    const gameId = parseInt(fileName.split('-')[1]);
+    
+    const parts = fileName.split('-');
+    const gameId = parseInt(parts[parts.length - 1]); // always take last part
+
 
     const gameRow = await getRowByGameId(gameId);
 

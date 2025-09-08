@@ -77,17 +77,14 @@ client.once(Events.ClientReady, () => {
 // === Message Handling ===
 client.on("messageCreate", async (message) => {
   try {
-    console.log(`📩 Message received: id=${message.id}, author=${message.author.tag}, bot=${message.author.bot}`);
+    console.log(`📩 Message received: id=${message.id}, author=${message.author.username}, bot=${message.author.bot}`);
 
-    // --- BOX SCORE CHANNEL ---
+    // --- BOX SCORE CHANNEL HANDLER ---
     if (message.channelId === process.env.BOX_SCORE_CHANNEL_ID) {
-      console.log("📊 Message is in BOX_SCORE_CHANNEL, checking for attachments...");
+      console.log('📊 Message is in BOX_SCORE_CHANNEL, checking for attachments...');
 
       for (const attachment of message.attachments.values()) {
-        if (!attachment.name.endsWith(".png")) {
-          console.log(`⚠️ Skipping attachment (not PNG): ${attachment.name}`);
-          continue;
-        }
+        if (!attachment.name.endsWith(".png")) continue;
 
         try {
           const BOX_SCORE_DIR = path.join('recapUtils', 'boxScores');
@@ -109,7 +106,7 @@ client.on("messageCreate", async (message) => {
           processQueue(client).catch(console.error);
 
         } catch (err) {
-          console.error(`❌ Failed to process attachment ${attachment.name}:`, err);
+          console.error(`❌ Failed to process ${attachment.name}:`, err);
         }
       }
 
@@ -117,55 +114,53 @@ client.on("messageCreate", async (message) => {
       return;
     }
 
-    // --- PHRASES (humans only) ---
-    if (message.author.bot) {
-      console.log("🤖 Message from bot, skipping phrase check.");
-      return;
-    }
+    // --- PHRASE HANDLER (humans only) ---
+    if (message.author.bot) return; // ignore bots
+    if (!message.content || typeof message.content !== 'string' || !message.content.trim()) return;
 
-    if (!message.content || typeof message.content !== "string") {
-      console.log("⚠️ Message has no content or non-string content.");
-      return;
-    }
-
-    // Normalize message content for safer matching
-    const normalize = (str) => str.replace(/\s+/g, ' ').trim().toLowerCase();
-    const contentNormalized = normalize(message.content);
-
-    console.log(`💬 Message content (normalized): "${contentNormalized}"`);
+    const normalizedContent = message.content.trim().toLowerCase();
+    console.log(`💬 Message content (normalized): "${normalizedContent}"`);
 
     let matched = false;
 
     for (const phrase of phrases) {
-      if (!phrase?.trigger || !phrase?.response) continue;
+      if (!phrase?.triggers || !phrase?.response) continue;
 
-      const triggerNormalized = normalize(phrase.trigger);
-      if (contentNormalized.includes(triggerNormalized)) {
-        matched = true;
+      // Ensure triggers is always an array
+      const triggers = Array.isArray(phrase.triggers) ? phrase.triggers : [phrase.triggers];
 
-        if (repliedMessages.has(message.id)) {
-          console.log(`✅ Already replied to message ${message.id} for phrase "${phrase.trigger}"`);
-          break;
+      for (const trigger of triggers) {
+        if (!trigger) continue;
+
+        if (normalizedContent.includes(trigger.toLowerCase())) {
+          if (repliedMessages.has(message.id)) {
+            console.log(`⏩ Already replied to message ${message.id}`);
+            matched = true;
+            break;
+          }
+
+          try {
+            await message.reply(phrase.response);
+            repliedMessages.add(message.id);
+            console.log(`💬 Replied to message ${message.id} for trigger "${trigger}"`);
+            matched = true;
+            break;
+          } catch (err) {
+            console.error(`❌ Failed to reply to message ${message.id}:`, err);
+          }
         }
-
-        console.log(`🎯 Phrase matched: "${phrase.trigger}" → replying with "${phrase.response}"`);
-        try {
-          await message.reply(phrase.response);
-          repliedMessages.add(message.id);
-        } catch (err) {
-          console.error(`❌ Failed to reply to message ${message.id}:`, err);
-        }
-
-        break; // Only reply once per message
       }
+
+      if (matched) break; // only reply once per message
     }
 
-    if (!matched) console.log("❌ No phrase matched this message.");
+    if (!matched) console.log('❌ No phrase matched this message.');
 
   } catch (err) {
-    console.error("❌ Error in messageCreate handler:", err);
+    console.error('❌ Error in messageCreate handler:', err);
   }
 });
+
 
 
 // === Slash Commands ===

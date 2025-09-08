@@ -7,7 +7,7 @@ import fs from 'fs';
 import path from "path";
 
 import { buildRecapForRow } from './recapUtils/buildGameRecap.js';
-import { generateRecapVideo } from './recapUtils/generateRecapVideo.js';
+import { generateRecapVideo, sendVideoToDiscord } from './recapUtils/generateRecapVideo.js';
 import { abbrToFullName, teamEmojiMap } from './teamMappings.js';
 
 // === Phrase triggers ===
@@ -16,6 +16,7 @@ const phrases = JSON.parse(fs.readFileSync('./phrases.json', 'utf-8'));
 // === Needed for image processing of box scores ===
 import sharp from 'sharp';
 import fetch from 'node-fetch';
+
 
 // === Express Server ===
 const app = express();
@@ -52,11 +53,8 @@ async function processQueue(client) {
     try {
       console.log(`🎬 Processing box score: ${filePath}`);
 
-      // 1️⃣ Generate the recap video
-      const videoFile = await generateRecapVideo(filePath);
-
-      // 2️⃣ Send the video to Discord
-      await sendVideoToDiscord(videoFile, channelId);
+      // Pass client so generateRecapVideo can send automatically
+      await generateRecapVideo(filePath, client);
 
       console.log(`✅ Done processing: ${filePath}`);
     } catch (err) {
@@ -66,6 +64,7 @@ async function processQueue(client) {
 
   processing = false;
 }
+
 
 // === Phrase message tracking ===
 const repliedMessages = new Set();
@@ -96,15 +95,17 @@ client.on("messageCreate", async (message) => {
         const buffer = Buffer.from(arrayBuffer);
 
         // Normalize image via Sharp to guaranteed PNG format
+        const normalizedPath = path.join(BOX_SCORE_DIR, `normalized-${attachment.name}`);
         await sharp(buffer)
-          .png({ force: true }) // ensures Sharp can read it
-          .toFile(localPath);
+          .png({ force: true })
+          .toFile(normalizedPath);
 
-        console.log(`📥 Saved box score (normalized PNG): ${localPath}`);
+        console.log(`📥 Saved box score (normalized PNG): ${normalizedPath}`);
 
-        // Push to queue instead of immediate processing
-        boxScoreQueue.push({ filePath: localPath, channelId: message.channelId });
-        processQueue(client);
+        // Push normalized file to queue
+        boxScoreQueue.push({ filePath: normalizedPath, channelId: message.channelId });
+        
+        processQueue(client).catch(console.error);
 
       } catch (err) {
         console.error(`❌ Failed to process ${attachment.name}:`, err);

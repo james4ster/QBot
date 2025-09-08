@@ -15,6 +15,7 @@ const phrases = JSON.parse(fs.readFileSync('./phrases.json', 'utf-8'));
 
 // === Needed for image processing of box scores ===
 import sharp from 'sharp';
+import fetch from 'node-fetch';
 
 // === Express Server ===
 const app = express();
@@ -91,9 +92,15 @@ client.on("messageCreate", async (message) => {
 
         const localPath = path.join(BOX_SCORE_DIR, attachment.name);
         const res = await fetch(attachment.url);
-        const buffer = Buffer.from(await res.arrayBuffer());
-        fs.writeFileSync(localPath, buffer);
-        console.log(`📥 Saved box score: ${localPath}`);
+        const arrayBuffer = await res.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        // Normalize image via Sharp to guaranteed PNG format
+        await sharp(buffer)
+          .png({ force: true }) // ensures Sharp can read it
+          .toFile(localPath);
+
+        console.log(`📥 Saved box score (normalized PNG): ${localPath}`);
 
         // Push to queue instead of immediate processing
         boxScoreQueue.push({ filePath: localPath, channelId: message.channelId });

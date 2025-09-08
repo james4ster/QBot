@@ -4,6 +4,14 @@ const client = new CohereClient({
   token: process.env.COHERE_API_KEY,
 });
 
+
+console.log("Home team:", gameData.homeTeam);
+console.log("Away team:", gameData.awayTeam);
+console.log("Home personality:", teamPersonalities[gameData.homeTeam]);
+console.log("Away personality:", teamPersonalities[gameData.awayTeam]);
+
+
+
 // Define team personalities right here
 const teamPersonalities = {
   "Blawnox Banana": "constantly tired and drunk",

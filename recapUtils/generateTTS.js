@@ -60,7 +60,7 @@ export function createVideo(imageFile, audioFile, outputFile = "recapVideo.mp4")
         "-pix_fmt yuv420p",
         "-r 30",
         "-shortest",
-        "-t 70",          // max 40 seconds
+        "-t 90",          // max 90 seconds
         "-vf scale=1280:720"
       ])
       .on("end", () => {

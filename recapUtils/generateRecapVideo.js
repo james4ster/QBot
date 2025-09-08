@@ -171,9 +171,9 @@ async function getAwayTeamFromRow(rowNumber) {
 }
 
 // === Send Video to Discord ===
-async function sendVideoToDiscord(localPath) {
+async function sendVideoToDiscord(localPath, channelId) {
   try {
-    const channel = await client.channels.fetch(process.env.BOX_SCORE_CHANNEL_ID);
+    const channel = await client.channels.fetch(channelId || process.env.BOX_SCORE_CHANNEL_ID);
     if (!channel) {
       console.error('❌ Could not find channel to send video.');
       return;

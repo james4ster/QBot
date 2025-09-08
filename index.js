@@ -1,7 +1,7 @@
 // === Imports ===
 import 'dotenv/config';
 import express from 'express';
-import { Client, GatewayIntentBits, Events, REST, Routes } from 'discord.js';
+import { Client, GatewayIntentBits, Events, REST, Routes, AttachmentBuilder } from 'discord.js';
 import { google } from 'googleapis';
 import fs from 'fs';
 import path from "path";
@@ -13,9 +13,8 @@ import { abbrToFullName, teamEmojiMap } from './teamMappings.js';
 // === Phrase triggers ===
 const phrases = JSON.parse(fs.readFileSync('./phrases.json', 'utf-8'));
 
-// === Needded for image proessing of box scores ===
+// === Needed for image processing of box scores ===
 import sharp from 'sharp';
-
 
 // === Express Server ===
 const app = express();
@@ -37,7 +36,6 @@ const auth = new google.auth.GoogleAuth({
 });
 const sheets = google.sheets({ version: 'v4', auth });
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
-
 
 // === Queue Setup For Managing Box Scores ===
 const boxScoreQueue = [];
@@ -68,25 +66,6 @@ async function processQueue(client) {
   processing = false;
 }
 
-// === Updated sendVideoToDiscord to accept channelId ===
-async function sendVideoToDiscord(localPath, channelId) {
-  try {
-    const channel = await client.channels.fetch(channelId || process.env.BOX_SCORE_CHANNEL_ID);
-    if (!channel) {
-      console.error('❌ Could not find channel to send video.');
-      return;
-    }
-
-    const file = new AttachmentBuilder(localPath);
-    await channel.send({ content: '🎬 Recap video ready!', files: [file] });
-    console.log(`✅ Sent video ${localPath} to Discord`);
-  } catch (err) {
-    console.error('❌ Failed to send video to Discord:', err);
-  }
-}
-
-
-
 // === Phrase message tracking ===
 const repliedMessages = new Set();
 
@@ -97,7 +76,6 @@ client.once(Events.ClientReady, () => {
 
 // === Message Handling ===
 client.on("messageCreate", async (message) => {
-  if (message.author.bot || message.webhookId) return;
 
   // === BOX SCORE CHANNEL HANDLER ===
   if (message.channelId === process.env.BOX_SCORE_CHANNEL_ID) {
@@ -131,6 +109,9 @@ client.on("messageCreate", async (message) => {
   }
 
   // === PHRASE HANDLER ===
+  // Ignore bots only for phrase replies
+  if (message.author.bot || message.webhookId) return;
+
   for (const phrase of phrases) {
     if (message.content.toLowerCase().includes(phrase.trigger.toLowerCase())) {
       if (repliedMessages.has(message.id)) return; // already replied
@@ -147,7 +128,6 @@ client.on("messageCreate", async (message) => {
   }
 
 });
-
 
 // === Slash Commands ===
 const commands = [

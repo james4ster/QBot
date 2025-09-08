@@ -4,7 +4,7 @@
     "response": "🐺 I agree ~ wanna watch Nyad with me?"
   },
   {
-    "triggers": ["penalties"],
+    "triggers    ": ["penalties"],
     "response": "🐺 Enough with the penalties."
   },
   {

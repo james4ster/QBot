@@ -12,7 +12,9 @@ Rules:
 - Host name is "Schedule Czar".
 - Write exactly 3 short paragraphs.
 - Only use the game data, highlights, player goals, and goalies provided.
-- Keep players on their correct teams.
+- Players must be listed with the team they played for in this game. 
+- Do NOT assign any player to a different team than what is provided in the "Game Data", "Player Goal Totals", or "Goalies".
+- At least once, mention the final score of the game, including both home and away scores.
 - Do not invent series info, nicknames, or future games.
 - Keep it funny but concise.
 - Do not add headings, one-liners, or extra tags.
@@ -32,9 +34,13 @@ ${Object.entries(playerGoals)
 Goalies:
 ${goalies.join("\n") || "Unknown"}
 
+Final Score:
+${gameData.awayTeam} ${gameData.awayScore} - ${gameData.homeScore} ${gameData.homeTeam}
+
 ${extraText}
 `;
 
+  
   try {
     const response = await client.chat({
       model: "command-r-plus",

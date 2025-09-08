@@ -48,6 +48,10 @@ async function processQueue() {
     try {
       console.log(`🎬 Processing box score: ${filePath}`);
       await generateRecapVideo(filePath);
+
+      // Send the resulting video to Discord
+      await sendVideoToDiscord(filePath);
+
     } catch (err) {
       console.error(`❌ Failed to process ${filePath}:`, err);
     }

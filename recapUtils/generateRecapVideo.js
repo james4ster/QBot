@@ -10,6 +10,8 @@ import { buildRecapForRow } from './buildGameRecap.js';
 import { generateTTS, createVideo } from './generateTTS.js';
 import { google } from 'googleapis';
 
+// === Box Score Setup ===
+import { AttachmentBuilder } from 'discord.js';
 const BOX_SCORE_DIR = path.join(__dirname, "boxScores");
 const PROCESSED_DIR = path.join(__dirname, "processedBoxScores");
   
@@ -168,3 +170,19 @@ async function getAwayTeamFromRow(rowNumber) {
   return res.data.values[0][0]; 
 }
 
+// === Send Video to Discord ===
+async function sendVideoToDiscord(localPath) {
+  try {
+    const channel = await client.channels.fetch(process.env.BOX_SCORE_CHANNEL_ID);
+    if (!channel) {
+      console.error('❌ Could not find channel to send video.');
+      return;
+    }
+
+    const file = new AttachmentBuilder(localPath);
+    await channel.send({ content: '🎬 Recap video ready!', files: [file] });
+    console.log(`✅ Sent video ${localPath} to Discord`);
+  } catch (err) {
+    console.error('❌ Failed to send video to Discord:', err);
+  }
+}

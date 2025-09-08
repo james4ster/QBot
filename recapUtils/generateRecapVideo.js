@@ -10,8 +10,8 @@ import { buildRecapForRow } from './buildGameRecap.js';
 import { generateTTS, createVideo } from './generateTTS.js';
 import { google } from 'googleapis';
 
-const BOX_SCORE_DIR = path.join("recapUtils", "boxScores");
-const PROCESSED_DIR = path.join("recapUtils", "processedBoxScores");
+const BOX_SCORE_DIR = path.join(__dirname, "boxScores");
+const PROCESSED_DIR = path.join(__dirname, "processedBoxScores");
   
 const OUTPUT_DIR = './videos';
 const TEMPLATE_PATH = path.join(__dirname, 'assets', 'recapTemplate.png');

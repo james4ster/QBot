@@ -42,5 +42,15 @@ node_modules/
 # Ignore your service account
 q_service_account.json
 
+# Ignore unecesary utility directories
+recapUtils/boxScores/
+recapUtils/processedBoxScores/
+recapUtils/videos/
+
+# Ignore test scripts
+recapUtils/testRecapVideo.js
+recapUtils/testTTS.js
+
+
 # Archive folder
 archive/

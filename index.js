@@ -4,7 +4,10 @@ import express from 'express';
 import { Client, GatewayIntentBits, Events, REST, Routes } from 'discord.js';
 import { google } from 'googleapis';
 import fs from 'fs';
+import path from "path";
+
 import { buildRecapForRow } from './recapUtils/buildGameRecap.js';
+import { generateRecapVideo } from './recapUtils/generateRecapVideo.js';
 import { abbrToFullName, teamEmojiMap } from './teamMappings.js';
 
 // === Phrase triggers ===
@@ -31,6 +34,30 @@ const auth = new google.auth.GoogleAuth({
 const sheets = google.sheets({ version: 'v4', auth });
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 
+
+// === Queue Setup For Managing Box Scores ===
+const boxScoreQueue = [];
+let processing = false;
+
+async function processQueue() {
+  if (processing || boxScoreQueue.length === 0) return;
+  processing = true;
+
+  while (boxScoreQueue.length > 0) {
+    const filePath = boxScoreQueue.shift();
+    try {
+      console.log(`🎬 Processing box score: ${filePath}`);
+      await generateRecapVideo(filePath);
+    } catch (err) {
+      console.error(`❌ Failed to process ${filePath}:`, err);
+    }
+  }
+
+  processing = false;
+}
+
+
+
 // === Phrase message tracking ===
 const repliedMessages = new Set();
 
@@ -40,28 +67,42 @@ client.once(Events.ClientReady, () => {
 });
 
 // === Message Handling ===
-client.on('messageCreate', async message => {
+client.on("messageCreate", async (message) => {
   if (message.author.bot || message.webhookId) return;
-  if (repliedMessages.has(message.id)) return;
 
-  const msgLower = message.content.toLowerCase();
+  // === BOX SCORE CHANNEL HANDLER ===
+  if (message.channelId === process.env.BOX_SCORE_CHANNEL_ID) {
+    for (const attachment of message.attachments.values()) {
+      if (!attachment.name.endsWith(".png")) continue;
 
-  if (message.mentions.has(client.user) || msgLower.includes('ticklebot')) {
-    repliedMessages.add(message.id);
-    await message.reply("🐺 What do you want? I'm busy watching Nyad.");
-    setTimeout(() => repliedMessages.delete(message.id), 60 * 1000);
+      try {
+        const BOX_SCORE_DIR = path.join('recapUtils', 'boxScores');
+        const PROCESSED_DIR = path.join('recapUtils', 'processedBoxScores');
+
+        if (!fs.existsSync(BOX_SCORE_DIR)) fs.mkdirSync(BOX_SCORE_DIR, { recursive: true });
+        if (!fs.existsSync(PROCESSED_DIR)) fs.mkdirSync(PROCESSED_DIR, { recursive: true });
+
+        const localPath = path.join(BOX_SCORE_DIR, attachment.name);
+        const res = await fetch(attachment.url);
+        const buffer = Buffer.from(await res.arrayBuffer());
+        fs.writeFileSync(localPath, buffer);
+        console.log(`📥 Saved box score: ${localPath}`);
+
+
+        // === Push to queue instead of immediate processing ===
+        boxScoreQueue.push(localPath);
+        processQueue();
+
+      } catch (err) {
+        console.error(`❌ Failed to process ${attachment.name}:`, err);
+      }
+    }
+
+    // Don't process phrases for box score messages
     return;
   }
 
-  for (const phraseObj of phrases) {
-    const triggers = phraseObj.triggers.map(t => t.toLowerCase());
-    if (triggers.some(trigger => new RegExp(`\\b${trigger}\\b`, 'i').test(msgLower))) {
-      repliedMessages.add(message.id);
-      await message.channel.send(phraseObj.response);
-      setTimeout(() => repliedMessages.delete(message.id), 10 * 60 * 1000);
-      break;
-    }
-  }
+  // ... rest of your message handling (phrases, mentions, etc.)
 });
 
 // === Slash Commands ===

@@ -1,54 +1,51 @@
-// recapLLM.js
-import 'dotenv/config';
+import { CohereClient } from "cohere-ai";
 
-export async function generateRecapText(gameData, highlights = []) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    console.error('❌ OPENROUTER_API_KEY not set.');
-    return '❌ API key missing.';
-  }
+const client = new CohereClient({
+  token: process.env.COHERE_API_KEY,
+});
 
-  const { homeTeam, awayTeam, homeScore, awayScore } = gameData;
-
-  // simple prompt with score and highlights
+export async function generateRecapText({ gameData, highlights, playerGoals, goalies, extraText = "" }) {
   const prompt = `
-Write a short, funny, chaotic recap of this NHL '95 game:
+You are generating a sarcastic and insulting NHL '95 style recap.
 
-${homeTeam} ${homeScore} vs ${awayTeam} ${awayScore}
+Rules:
+- Host name is "Schedule Czar".
+- Write exactly 3 short paragraphs.
+- Only use the game data, highlights, player goals, and goalies provided.
+- Keep players on their correct teams.
+- Do not invent series info, nicknames, or future games.
+- Keep it offnsive but concise.
+- Do not add headings, one-liners, or extra tags.
+- Do not mention the game ID.
 
-Include the following highlights if possible:
-${highlights.map(h => `- ${h.team}: ${h.goalScorer} (${h.assist1 || 'no assist'}, ${h.assist2 || 'no assist'}) [Period ${h.period}, ${h.time}]`).join('\n')}
+Game Data:
+${JSON.stringify(gameData, null, 2)}
 
-Keep it under 150 words.
-Use humor, sarcasm, and a hockey blogger voice.
+Scoring Highlights:
+${highlights.join("\n")}
+
+Player Goal Totals:
+${Object.entries(playerGoals)
+  .map(([p, g]) => `${p} scored ${g} goal${g > 1 ? "s" : ""}`)
+  .join("\n")}
+
+Goalies:
+${goalies.join("\n") || "Unknown"}
+
+${extraText}
 `;
 
   try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-3.5-turbo',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.9,
-        max_tokens: 300,
-      }),
+    const response = await client.chat({
+      model: "command-r-plus",
+      message: prompt,
+      temperature: 0.9,
+      max_tokens: 400,
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('OpenRouter API Error:', error);
-      return '🚨 Could not generate recap.';
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content.trim();
-
+    return response.text?.trim() || "🚨 Could not generate recap.";
   } catch (err) {
-    console.error('Request failed:', err);
-    return '❌ Recap generation failed due to network error.';
+    console.error("Cohere API Error:", err);
+    return "🚨 Could not generate recap.";
   }
 }

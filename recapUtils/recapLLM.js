@@ -5,12 +5,6 @@ const client = new CohereClient({
 });
 
 
-console.log("Home team:", gameData.homeTeam);
-console.log("Away team:", gameData.awayTeam);
-console.log("Home personality:", teamPersonalities[gameData.homeTeam]);
-console.log("Away personality:", teamPersonalities[gameData.awayTeam]);
-
-
 
 // Define team personalities right here
 const teamPersonalities = {
@@ -29,6 +23,12 @@ const teamPersonalities = {
 
 
 export async function generateRecapText({ gameData, highlights, playerGoals, goalies, extraText = "" }) {
+
+  console.log("Home team:", gameData.homeTeam);
+  console.log("Away team:", gameData.awayTeam);
+  console.log("Home personality:", teamPersonalities[gameData.homeTeam]);
+  console.log("Away personality:", teamPersonalities[gameData.awayTeam]);
+  
   const prompt = `
 You are generating a sarcastic and insulting NHL '95 style recap.
 

@@ -6,17 +6,17 @@ const client = new CohereClient({
 
 // Define team personalities right here
 const teamPersonalities = {
-  Blawnox Banana: "constantly tired and drunk",
-  Barrow Phantoms: "nickname is tommy fumbles",
-  Chicago Trash Pandas: "loves fall out boy and taylor swift",
-  Corscunt Imperials: "loves star wars and is the nicest guy in the league",
-  Down Bs: "plays effeminate with down-b shots and seagulls",
-  House Stark of Winterfell: "love the movie nyad and game of thrones",
-  Montly Crew: "most likable guy from Quitadelphia",
-  Naked City Junkies: "sleeps outside on the patio",
-  Superior Coasters: "cheats constantly",
-  Troy Hill Cookiepuss: "the one everyone loves but chokes in the playoffs",
-  Valley Forge Free Masons: "never plays his league games;  usually playing Hellraisers"
+  "Blawnox Banana": "constantly tired and drunk",
+  "Barrow Phantoms": "nickname is tommy fumbles",
+  "Chicago Trash Pandas": "loves fall out boy and taylor swift",
+  "Corscunt Imperials": "loves star wars and is the nicest guy in the league",
+  "Down Bs": "plays effeminate with down-b shots and seagulls",
+  "House Stark of Winterfell": "love the movie nyad and game of thrones",
+  "Montly Crew": "most likable guy from Quitadelphia",
+  "Naked City Junkies": "sleeps outside on the patio",
+  "Superior Coasters": "cheats constantly",
+  "Troy Hill Cookiepuss": "the one everyone loves but chokes in the playoffs",
+  "Valley Forge Free Masons": "never plays his league games; usually playing Hellraisers"
 };
 
 

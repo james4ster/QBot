@@ -14,7 +14,7 @@ Rules:
 - Only use the game data, highlights, player goals, and goalies provided.
 - Keep players on their correct teams.
 - Do not invent series info, nicknames, or future games.
-- Keep it offnsive but concise.
+- Keep it funny but concise.
 - Do not add headings, one-liners, or extra tags.
 - Do not mention the game ID.
 

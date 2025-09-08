@@ -13,6 +13,10 @@ import { abbrToFullName, teamEmojiMap } from './teamMappings.js';
 // === Phrase triggers ===
 const phrases = JSON.parse(fs.readFileSync('./phrases.json', 'utf-8'));
 
+// === Needded for image proessing of box scores ===
+import sharp from 'sharp';
+
+
 // === Express Server ===
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -39,25 +43,46 @@ const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 const boxScoreQueue = [];
 let processing = false;
 
-async function processQueue() {
+async function processQueue(client) {
   if (processing || boxScoreQueue.length === 0) return;
   processing = true;
 
   while (boxScoreQueue.length > 0) {
-    const filePath = boxScoreQueue.shift();
+    const { filePath, channelId } = boxScoreQueue.shift();
+
     try {
       console.log(`🎬 Processing box score: ${filePath}`);
-      await generateRecapVideo(filePath);
 
-      // Send the resulting video to Discord
-      await sendVideoToDiscord(filePath);
+      // 1️⃣ Generate the recap video
+      const videoFile = await generateRecapVideo(filePath);
 
+      // 2️⃣ Send the video to Discord
+      await sendVideoToDiscord(videoFile, channelId);
+
+      console.log(`✅ Done processing: ${filePath}`);
     } catch (err) {
       console.error(`❌ Failed to process ${filePath}:`, err);
     }
   }
 
   processing = false;
+}
+
+// === Updated sendVideoToDiscord to accept channelId ===
+async function sendVideoToDiscord(localPath, channelId) {
+  try {
+    const channel = await client.channels.fetch(channelId || process.env.BOX_SCORE_CHANNEL_ID);
+    if (!channel) {
+      console.error('❌ Could not find channel to send video.');
+      return;
+    }
+
+    const file = new AttachmentBuilder(localPath);
+    await channel.send({ content: '🎬 Recap video ready!', files: [file] });
+    console.log(`✅ Sent video ${localPath} to Discord`);
+  } catch (err) {
+    console.error('❌ Failed to send video to Discord:', err);
+  }
 }
 
 
@@ -92,10 +117,9 @@ client.on("messageCreate", async (message) => {
         fs.writeFileSync(localPath, buffer);
         console.log(`📥 Saved box score: ${localPath}`);
 
-
-        // === Push to queue instead of immediate processing ===
-        boxScoreQueue.push(localPath);
-        processQueue();
+        // Push to queue instead of immediate processing
+        boxScoreQueue.push({ filePath: localPath, channelId: message.channelId });
+        processQueue(client);
 
       } catch (err) {
         console.error(`❌ Failed to process ${attachment.name}:`, err);
@@ -106,8 +130,24 @@ client.on("messageCreate", async (message) => {
     return;
   }
 
-  // ... rest of your message handling (phrases, mentions, etc.)
+  // === PHRASE HANDLER ===
+  for (const phrase of phrases) {
+    if (message.content.toLowerCase().includes(phrase.trigger.toLowerCase())) {
+      if (repliedMessages.has(message.id)) return; // already replied
+
+      try {
+        await message.reply(phrase.response);
+        repliedMessages.add(message.id);
+        console.log(`💬 Replied to message ${message.id} for phrase "${phrase.trigger}"`);
+      } catch (err) {
+        console.error(`❌ Failed to reply to message ${message.id}:`, err);
+      }
+      break; // only reply once per message
+    }
+  }
+
 });
+
 
 // === Slash Commands ===
 const commands = [

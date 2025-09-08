@@ -6,17 +6,17 @@ const client = new CohereClient({
 
 // Define team personalities right here
 const teamPersonalities = {
-  BNX: "constantly tired and drunk",
-  BRW: "nickname is tommy fumbles",
-  CHI: "loves fall out boy and taylor swift",
-  COR: "loves star wars and is the nicest guy in the league",
-  DWB: "plays effeminate with down-b shots and seagulls",
-  HSW: "love the movie nyad and game of thrones",
-  MON: "most likable guy from Quitadelphia",
-  NCJ: "sleeps outside on the patio",
-  SUP: "cheats constantly",
-  THC: "chokes in the playoffs",
-  VFM: "usually playing Hellraisers"
+  Blawnox Banana: "constantly tired and drunk",
+  Barrow Phantoms: "nickname is tommy fumbles",
+  Chicago Trash Pandas: "loves fall out boy and taylor swift",
+  Corscunt Imperials: "loves star wars and is the nicest guy in the league",
+  Down Bs: "plays effeminate with down-b shots and seagulls",
+  House Stark of Winterfell: "love the movie nyad and game of thrones",
+  Montly Crew: "most likable guy from Quitadelphia",
+  Naked City Junkies: "sleeps outside on the patio",
+  Superior Coasters: "cheats constantly",
+  Troy Hill Cookiepuss: "the one everyone loves but chokes in the playoffs",
+  Valley Forge Free Masons: "never plays his league games;  usually playing Hellraisers"
 };
 
 
@@ -26,7 +26,7 @@ You are generating a sarcastic and insulting NHL '95 style recap.
 
 Rules:
 - Host name is "Schedule Czar".
-- When describing a team, you can include their personality: ${teamPersonalities[gameData.homeTeam] || "unknown personality"} vs ${teamPersonalities[gameData.awayTeam] || "unknown personality"}.
+- When describing a team, you can include their personality: ${teamPersonalities[gameData.homeTeam] || "a team so bland they don’t even deserve a personality"} vs ${teamPersonalities[gameData.awayTeam] || "a team so bland they don’t even deserve a personality"}.
 - Write exactly 3 short paragraphs.
 - Always incorporate one or both team personality into the response.
 - Only use the game data, highlights, player goals, and goalies provided.

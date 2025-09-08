@@ -51,6 +51,8 @@ recapUtils/videos/
 recapUtils/testRecapVideo.js
 recapUtils/testTTS.js
 
+videos/
+
 
 # Archive folder
 archive/

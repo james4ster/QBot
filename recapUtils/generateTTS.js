@@ -30,7 +30,7 @@ export async function generateTTS(text, outputFile = 'recap.mp3') {
 
   const [response] = await client.synthesizeSpeech({
     input: { ssml: ssmlText }, // use SSML here
-    voice: { languageCode: 'en-CA', name: 'en-CA-Wavenet-A' }, // enthusiastic male voice
+    voice: { languageCode: 'en-US', name: 'en-US-Wavenet-D' }, // enthusiastic male voice
     audioConfig: { audioEncoding: 'MP3' }
   });
 

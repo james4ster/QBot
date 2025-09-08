@@ -76,66 +76,64 @@ client.once(Events.ClientReady, () => {
 
 // === Message Handling ===
 client.on("messageCreate", async (message) => {
+  try {
+    // --- BOX SCORE CHANNEL HANDLER ---
+    if (message.channelId === process.env.BOX_SCORE_CHANNEL_ID) {
+      for (const attachment of message.attachments.values()) {
+        if (!attachment.name.endsWith(".png")) continue;
 
-  // === BOX SCORE CHANNEL HANDLER ===
-  if (message.channelId === process.env.BOX_SCORE_CHANNEL_ID) {
-    for (const attachment of message.attachments.values()) {
-      if (!attachment.name.endsWith(".png")) continue;
+        try {
+          const BOX_SCORE_DIR = path.join('recapUtils', 'boxScores');
+          const PROCESSED_DIR = path.join('recapUtils', 'processedBoxScores');
 
-      try {
-        const BOX_SCORE_DIR = path.join('recapUtils', 'boxScores');
-        const PROCESSED_DIR = path.join('recapUtils', 'processedBoxScores');
+          if (!fs.existsSync(BOX_SCORE_DIR)) fs.mkdirSync(BOX_SCORE_DIR, { recursive: true });
+          if (!fs.existsSync(PROCESSED_DIR)) fs.mkdirSync(PROCESSED_DIR, { recursive: true });
 
-        if (!fs.existsSync(BOX_SCORE_DIR)) fs.mkdirSync(BOX_SCORE_DIR, { recursive: true });
-        if (!fs.existsSync(PROCESSED_DIR)) fs.mkdirSync(PROCESSED_DIR, { recursive: true });
+          const localPath = path.join(BOX_SCORE_DIR, attachment.name);
+          const res = await fetch(attachment.url);
+          const buffer = Buffer.from(await res.arrayBuffer());
 
-        const localPath = path.join(BOX_SCORE_DIR, attachment.name);
-        const res = await fetch(attachment.url);
-        const arrayBuffer = await res.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+          const normalizedPath = path.join(BOX_SCORE_DIR, `normalized-${attachment.name}`);
+          await sharp(buffer).png({ force: true }).toFile(normalizedPath);
 
-        // Normalize image via Sharp to guaranteed PNG format
-        const normalizedPath = path.join(BOX_SCORE_DIR, `normalized-${attachment.name}`);
-        await sharp(buffer)
-          .png({ force: true })
-          .toFile(normalizedPath);
+          console.log(`📥 Saved box score (normalized PNG): ${normalizedPath}`);
 
-        console.log(`📥 Saved box score (normalized PNG): ${normalizedPath}`);
+          boxScoreQueue.push({ filePath: normalizedPath, channelId: message.channelId });
+          processQueue(client).catch(console.error);
 
-        // Push normalized file to queue
-        boxScoreQueue.push({ filePath: normalizedPath, channelId: message.channelId });
-        
-        processQueue(client).catch(console.error);
+        } catch (err) {
+          console.error(`❌ Failed to process ${attachment.name}:`, err);
+        }
+      }
 
-      } catch (err) {
-        console.error(`❌ Failed to process ${attachment.name}:`, err);
+      // prevent box score messages from running phrases
+      return;
+    }
+
+    // --- PHRASE HANDLER (humans only) ---
+    if (message.author.bot || message.webhookId) return;
+
+    for (const phrase of phrases) {
+      if (message.content.toLowerCase().includes(phrase.trigger.toLowerCase())) {
+        if (repliedMessages.has(message.id)) return;
+
+        try {
+          await message.reply(phrase.response);
+          repliedMessages.add(message.id);
+          console.log(`💬 Replied to message ${message.id} for phrase "${phrase.trigger}"`);
+        } catch (err) {
+          console.error(`❌ Failed to reply to message ${message.id}:`, err);
+        }
+
+        break; // only reply once per message
       }
     }
 
-    // Don't process phrases for box score messages
-    return;
+  } catch (err) {
+    console.error("❌ Error in messageCreate handler:", err);
   }
-
-  // === PHRASE HANDLER ===
-  // Ignore bots only for phrase replies
-  if (message.author.bot || message.webhookId) return;
-
-  for (const phrase of phrases) {
-    if (message.content.toLowerCase().includes(phrase.trigger.toLowerCase())) {
-      if (repliedMessages.has(message.id)) return; // already replied
-
-      try {
-        await message.reply(phrase.response);
-        repliedMessages.add(message.id);
-        console.log(`💬 Replied to message ${message.id} for phrase "${phrase.trigger}"`);
-      } catch (err) {
-        console.error(`❌ Failed to reply to message ${message.id}:`, err);
-      }
-      break; // only reply once per message
-    }
-  }
-
 });
+
 
 // === Slash Commands ===
 const commands = [

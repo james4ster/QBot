@@ -18,15 +18,19 @@ export async function generateTTS(text, outputFile = 'recap.mp3') {
   // Wrap text in SSML with sports announcer style
   const ssmlText = `
     <speak>
-      <prosody rate="1.05" pitch="+2st">
+      <prosody rate="1.1" pitch="+2st">
+        <emphasis level="strong">Listen up, hockey fans!</emphasis>
+        <break time="200ms"/>
         ${text}
+        <break time="300ms"/>
+        What a game!
       </prosody>
     </speak>
   `;
 
   const [response] = await client.synthesizeSpeech({
-    input: { text },   // or use ssml if you want, but some tags may be ignored
-    voice: { languageCode: 'en-US', name: 'en-US-Wavenet-D' },
+    input: { ssml: ssmlText }, // use SSML here
+    voice: { languageCode: 'en-US', name: 'en-US-Wavenet-D' }, // enthusiastic male voice
     audioConfig: { audioEncoding: 'MP3' }
   });
 
@@ -34,6 +38,7 @@ export async function generateTTS(text, outputFile = 'recap.mp3') {
   console.log('✅ Audio saved to', outputFile);
   return outputFile;
 }
+
 
 /**
  * Combine an image and audio into a video (max 40s)

@@ -11,12 +11,13 @@ const teamPersonalities = {
   "Blawnox Banana": "constantly tired and drunk",
   "Barrow Phantoms": "nickname is tommy fumbles",
   "Chicago Trash Pandas": "loves fall out boy and taylor swift",
-  "Corscunt Imperials": "loves star wars and is the nicest guy in the league",
+  "Coruscant Imperials": "loves star wars and is the nicest guy in the league",
   "Down Bees": "plays effeminate with patented \"down vagina\"  shot",
   "House Stark of Winterfell": "mention the movie nyad",
-  "Montly Crew": "most likable guy from Quitadelphia",
+  "Montly Crue": "most likable guy from Quitadelphia",
   "Naked City Junkies": "sleeps outside on the patio",
   "Superior Coasters": "cheats constantly",
+  "The Q Q*Berts": "locks keys in car",
   "Troy Hill Cookiepuss": "the one everyone loves but chokes in the playoffs",
   "Valley Forge Free Masons": "never plays his league games; usually playing Hellraisers"
 };

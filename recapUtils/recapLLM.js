@@ -12,7 +12,7 @@ const teamPersonalities = {
   "Barrow Phantoms": "nickname is tommy fumbles",
   "Chicago Trash Pandas": "loves fall out boy and taylor swift",
   "Corscunt Imperials": "loves star wars and is the nicest guy in the league",
-  "Down Bs": "plays effeminate with patented \"down vagina\"  shot",
+  "Down Bees": "plays effeminate with patented \"down vagina\"  shot",
   "House Stark of Winterfell": "mention the movie nyad",
   "Montly Crew": "most likable guy from Quitadelphia",
   "Naked City Junkies": "sleeps outside on the patio",

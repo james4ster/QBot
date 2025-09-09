@@ -1,3 +1,5 @@
+console.log("🚀 Bot process started, PID:", process.pid, "at", new Date().toISOString());
+
 // === Imports ===
 import 'dotenv/config';
 import express from 'express';
@@ -197,6 +199,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
     console.error('❌ Error registering commands:', err);
   }
 })();
+
 
 // === Interaction Handling ===
 client.on('interactionCreate', async interaction => {

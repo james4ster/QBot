@@ -13,7 +13,7 @@ const teamPersonalities = {
   "Chicago Trash Pandas": "loves fall out boy and taylor swift",
   "Corscunt Imperials": "loves star wars and is the nicest guy in the league",
   "Down Bs": "plays effeminate with down-b patented down vagina shot",
-  "House Stark of Winterfell": "loves the movie nyad",
+  "House Stark of Winterfell": "mention the movie nyad",
   "Montly Crew": "most likable guy from Quitadelphia",
   "Naked City Junkies": "sleeps outside on the patio",
   "Superior Coasters": "cheats constantly",

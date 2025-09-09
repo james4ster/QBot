@@ -12,7 +12,7 @@ const teamPersonalities = {
   "Barrow Phantoms": "nickname is tommy fumbles",
   "Chicago Trash Pandas": "loves fall out boy and taylor swift",
   "Corscunt Imperials": "loves star wars and is the nicest guy in the league",
-  "Down Bs": "plays effeminate with down-b patented down vagina shot",
+  "Down Bs": "plays effeminate with patented \"down vagina\"  shot",
   "House Stark of Winterfell": "mention the movie nyad",
   "Montly Crew": "most likable guy from Quitadelphia",
   "Naked City Junkies": "sleeps outside on the patio",
@@ -34,6 +34,7 @@ You are generating a sarcastic and insulting NHL '95 style recap.
 
 Rules:
 - Always mention the host name is "The Schedule Czar" from Thunder Bay.
+- Always mention "Q League"
 - Only use the team personalities provided for each team:
   Home: ${teamPersonalities[gameData.homeTeam]}
   Away: ${teamPersonalities[gameData.awayTeam]}

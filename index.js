@@ -80,107 +80,93 @@ client.once(Events.ClientReady, () => {
 
 // === Message Handling ===
 client.on("messageCreate", async (message) => {
-      // Ignore duplicates
-      if (processedMessages.has(message.id)) return;
-      processedMessages.add(message.id);
+  if (processedMessages.has(message.id)) return;
+  processedMessages.add(message.id);
 
-      // Ignore all bot messages except your bot posting box scores
-      const isBotBoxScore = message.author.bot && message.channelId === process.env.BOX_SCORE_CHANNEL_ID;
-      if (message.author.bot && !isBotBoxScore) return;
+  const isBotBoxScore = message.author.bot && message.channelId === process.env.BOX_SCORE_CHANNEL_ID;
+  if (message.author.bot && !isBotBoxScore) return;
 
-      // Ignore human messages that aren't in the box score channel
-      if (!message.author.bot && message.channelId !== process.env.BOX_SCORE_CHANNEL_ID) return;
+  console.log("📩 Message handler fired! PID:", process.pid, "Listener count:", client.listenerCount("messageCreate"));
+  console.log(`📩 Message received: id=${message.id}, author=${message.author.username}, bot=${message.author.bot}`);
 
-      console.log("📩 Message handler fired! PID:", process.pid, "Listener count:", client.listenerCount("messageCreate"));
+  // --- BOX SCORE CHANNEL HANDLER ---
+  if (message.channelId === process.env.BOX_SCORE_CHANNEL_ID) {
+    console.log('📊 Message is in BOX_SCORE_CHANNEL, checking for attachments...');
+
+    for (const attachment of message.attachments.values()) {
+      if (!attachment.name.endsWith(".png")) continue;
 
       try {
-        console.log(`📩 Message received: id=${message.id}, author=${message.author.username}, bot=${message.author.bot}`);
+        const BOX_SCORE_DIR = path.join('recapUtils', 'boxScores');
+        const PROCESSED_DIR = path.join('recapUtils', 'processedBoxScores');
 
-    // --- BOX SCORE CHANNEL HANDLER ---
-    if (message.channelId === process.env.BOX_SCORE_CHANNEL_ID) {
-      console.log('📊 Message is in BOX_SCORE_CHANNEL, checking for attachments...');
+        if (!fs.existsSync(BOX_SCORE_DIR)) fs.mkdirSync(BOX_SCORE_DIR, { recursive: true });
+        if (!fs.existsSync(PROCESSED_DIR)) fs.mkdirSync(PROCESSED_DIR, { recursive: true });
 
-      for (const attachment of message.attachments.values()) {
-        if (!attachment.name.endsWith(".png")) continue;
+        const res = await fetch(attachment.url);
+        const buffer = Buffer.from(await res.arrayBuffer());
+
+        const normalizedPath = path.join(BOX_SCORE_DIR, `normalized-${attachment.name}`);
+        await sharp(buffer).png({ force: true }).toFile(normalizedPath);
+
+        console.log(`📥 Saved box score (normalized PNG): ${normalizedPath}`);
+
+        boxScoreQueue.push({ filePath: normalizedPath, channelId: message.channelId });
+        console.log(`📝 Added to queue: ${normalizedPath} (queue length: ${boxScoreQueue.length})`);
+
+        await processQueue(client);
+      } catch (err) {
+        console.error(`❌ Failed to process ${attachment.name}:`, err);
+      }
+    }
+
+    // Stop box score messages from triggering phrase handler
+    return;
+  }
+
+  // --- PHRASE HANDLER (humans only, any channel) ---
+  
+  if (!message.content || typeof message.content !== 'string' || !message.content.trim()) return;
+
+  const normalizedContent = message.content.trim().toLowerCase();
+  console.log(`💬 Message content (normalized): "${normalizedContent}"`);
+
+  let matched = false;
+
+  for (const phrase of phrases) {
+    if (!phrase?.triggers || !phrase?.response) continue;
+
+    const triggers = Array.isArray(phrase.triggers) ? phrase.triggers : [phrase.triggers];
+
+    for (const trigger of triggers) {
+      if (!trigger) continue;
+
+      const regex = new RegExp(`\\b${escapeRegex(trigger.toLowerCase())}\\b`, 'i');
+      if (regex.test(normalizedContent)) {
+        if (repliedMessages.has(message.id)) {
+          console.log(`⏩ Already replied to message ${message.id}`);
+          matched = true;
+          break;
+        }
 
         try {
-          const BOX_SCORE_DIR = path.join('recapUtils', 'boxScores');
-          const PROCESSED_DIR = path.join('recapUtils', 'processedBoxScores');
-
-          if (!fs.existsSync(BOX_SCORE_DIR)) fs.mkdirSync(BOX_SCORE_DIR, { recursive: true });
-          if (!fs.existsSync(PROCESSED_DIR)) fs.mkdirSync(PROCESSED_DIR, { recursive: true });
-
-          const localPath = path.join(BOX_SCORE_DIR, attachment.name);
-          const res = await fetch(attachment.url);
-          const buffer = Buffer.from(await res.arrayBuffer());
-
-          const normalizedPath = path.join(BOX_SCORE_DIR, `normalized-${attachment.name}`);
-          await sharp(buffer).png({ force: true }).toFile(normalizedPath);
-
-          console.log(`📥 Saved box score (normalized PNG): ${normalizedPath}`);
-
-          boxScoreQueue.push({ filePath: normalizedPath, channelId: message.channelId });
-          console.log(`📝 Added to queue: ${normalizedPath} (queue length: ${boxScoreQueue.length})`);
-
-          // Push to queue for processing
-          processQueue(client).catch(console.error);
-        
+          await message.reply(phrase.response);
+          repliedMessages.add(message.id);
+          console.log(`💬 Replied to message ${message.id} for trigger "${trigger}"`);
+          matched = true;
+          break;
         } catch (err) {
-          console.error(`❌ Failed to process ${attachment.name}:`, err);
+          console.error(`❌ Failed to reply to message ${message.id}:`, err);
         }
       }
-
-      // Prevent box score messages from running phrases
-      return;
     }
 
-    // --- PHRASE HANDLER (humans only) ---
-    if (message.author.bot) return; // ignore bots
-    if (!message.content || typeof message.content !== 'string' || !message.content.trim()) return;
-
-    const normalizedContent = message.content.trim().toLowerCase();
-    console.log(`💬 Message content (normalized): "${normalizedContent}"`);
-
-    let matched = false;
-
-    for (const phrase of phrases) {
-      if (!phrase?.triggers || !phrase?.response) continue;
-
-      // Ensure triggers is always an array
-      const triggers = Array.isArray(phrase.triggers) ? phrase.triggers : [phrase.triggers];
-
-      for (const trigger of triggers) {
-        if (!trigger) continue;
-
-          const regex = new RegExp(`\\b${escapeRegex(trigger.toLowerCase())}\\b`, 'i');
-          if (regex.test(normalizedContent)) {
-          if (repliedMessages.has(message.id)) {
-            console.log(`⏩ Already replied to message ${message.id}`);
-            matched = true;
-            break;
-          }
-
-          try {
-            await message.reply(phrase.response);
-            repliedMessages.add(message.id);
-            console.log(`💬 Replied to message ${message.id} for trigger "${trigger}"`);
-            matched = true;
-            break;
-          } catch (err) {
-            console.error(`❌ Failed to reply to message ${message.id}:`, err);
-          }
-        }
-      }
-
-      if (matched) break; // only reply once per message
-    }
-
-    if (!matched) console.log('❌ No phrase matched this message.');
-
-  } catch (err) {
-    console.error('❌ Error in messageCreate handler:', err);
+    if (matched) break;
   }
+
+  if (!matched) console.log('❌ No phrase matched this message.');
 });
+
 
 // === Helper to escape regex - needed for phrase matching ===
 function escapeRegex(str) {

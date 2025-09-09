@@ -68,8 +68,9 @@ async function processQueue(client) {
 }
 
 
-// === Phrase message tracking ===
+// === Message tracking for duplicates ===
 const repliedMessages = new Set();
+const processedMessages = new Set();
 
 // === Discord Events ===
 client.once(Events.ClientReady, () => {
@@ -78,11 +79,21 @@ client.once(Events.ClientReady, () => {
 
 // === Message Handling ===
 client.on("messageCreate", async (message) => {
-  // Debugging multiple listeners
-  console.log("📩 Message handler fired! PID:", process.pid, "Listener count:", client.listenerCount("messageCreate"));
-  
-  try {
-    console.log(`📩 Message received: id=${message.id}, author=${message.author.username}, bot=${message.author.bot}`);
+      // Ignore duplicates
+      if (processedMessages.has(message.id)) return;
+      processedMessages.add(message.id);
+
+      // Ignore all bot messages except your bot posting box scores
+      const isBotBoxScore = message.author.bot && message.channelId === process.env.BOX_SCORE_CHANNEL_ID;
+      if (message.author.bot && !isBotBoxScore) return;
+
+      // Ignore human messages that aren't in the box score channel
+      if (!message.author.bot && message.channelId !== process.env.BOX_SCORE_CHANNEL_ID) return;
+
+      console.log("📩 Message handler fired! PID:", process.pid, "Listener count:", client.listenerCount("messageCreate"));
+
+      try {
+        console.log(`📩 Message received: id=${message.id}, author=${message.author.username}, bot=${message.author.bot}`);
 
     // --- BOX SCORE CHANNEL HANDLER ---
     if (message.channelId === process.env.BOX_SCORE_CHANNEL_ID) {

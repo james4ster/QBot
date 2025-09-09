@@ -71,6 +71,7 @@ async function processQueue(client) {
 // === Message tracking for duplicates ===
 const repliedMessages = new Set();
 const processedMessages = new Set();
+// == End 
 
 // === Discord Events ===
 client.once(Events.ClientReady, () => {

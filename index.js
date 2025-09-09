@@ -120,8 +120,11 @@ client.on("messageCreate", async (message) => {
           console.log(`📥 Saved box score (normalized PNG): ${normalizedPath}`);
 
           boxScoreQueue.push({ filePath: normalizedPath, channelId: message.channelId });
-          processQueue(client).catch(console.error);
+          console.log(`📝 Added to queue: ${normalizedPath} (queue length: ${boxScoreQueue.length})`);
 
+          // Push to queue for processing
+          processQueue(client).catch(console.error);
+        
         } catch (err) {
           console.error(`❌ Failed to process ${attachment.name}:`, err);
         }

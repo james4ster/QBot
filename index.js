@@ -132,7 +132,8 @@ client.on("messageCreate", async (message) => {
       for (const trigger of triggers) {
         if (!trigger) continue;
 
-        if (normalizedContent.includes(trigger.toLowerCase())) {
+          const regex = new RegExp(`\\b${escapeRegex(trigger.toLowerCase())}\\b`, 'i');
+          if (regex.test(normalizedContent)) {
           if (repliedMessages.has(message.id)) {
             console.log(`⏩ Already replied to message ${message.id}`);
             matched = true;
@@ -161,7 +162,10 @@ client.on("messageCreate", async (message) => {
   }
 });
 
-
+// === Helper to escape regex - needed for phrase matching ===
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 // === Slash Commands ===
 const commands = [

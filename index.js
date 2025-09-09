@@ -78,6 +78,9 @@ client.once(Events.ClientReady, () => {
 
 // === Message Handling ===
 client.on("messageCreate", async (message) => {
+  // Debugging multiple listeners
+  console.log("📩 Message handler fired! PID:", process.pid, "Listener count:", client.listenerCount("messageCreate"));
+  
   try {
     console.log(`📩 Message received: id=${message.id}, author=${message.author.username}, bot=${message.author.bot}`);
 

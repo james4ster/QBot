@@ -211,37 +211,45 @@
   })();
 
   // === Interaction Handling ===
-client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
+    client.on("interactionCreate", async (interaction) => {
+      if (!interaction.isChatInputCommand()) return;
 
-  // --- /tldr command ---
-  if (interaction.commandName === "tldr") {
-    try {
-      console.log("✅ /tldr command triggered");
+      if (interaction.commandName === "tldr") {
+        try {
+          console.log("✅ /tldr command triggered");
 
-      // Immediately acknowledge, gives you 15 minutes to respond
-      await interaction.deferReply();
+          // Immediately acknowledge, gives you 15 minutes to respond
+          await interaction.deferReply();
 
-      // Replace with your logic to fetch messages
-      const messages = await fetchMessages(interaction);
+          // --- Fetch recent messages from the channel ---
+          const hours = interaction.options.getInteger("hours") || 2;
+          const cutoff = Date.now() - hours * 60 * 60 * 1000;
 
-      if (!messages.length) {
-        await interaction.editReply("🤷 Nothing to summarize in the last 2 hours.");
-        return;
+          let fetchedMessages = await interaction.channel.messages.fetch({ limit: 10 }); // fetch last 10 messages
+          const messages = Array.from(fetchedMessages.values())
+            .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
+            .sort((a, b) => a.createdTimestamp - b.createdTimestamp); // oldest first
+
+          if (!messages.length) {
+            await interaction.editReply(`🤷 Nothing to summarize in the last ${hours} hours.`);
+            return;
+          }
+
+          // --- Summarize ---
+          const summary = await summarizeChat(messages, hours);
+          await interaction.editReply(summary);
+
+        } catch (err) {
+          console.error("❌ Error in /tldr handler:", err);
+          try {
+            await interaction.followUp("⚠️ Failed to generate TL;DR.");
+          } catch (e) {
+            console.error("❌ FollowUp also failed:", e);
+          }
+        }
       }
+    
 
-      const summary = await summarizeChat(messages, 2);
-      await interaction.editReply(summary);
-    } catch (err) {
-      console.error("❌ Error in /tldr handler:", err);
-      // Fallback in case editReply fails
-      try {
-        await interaction.followUp("⚠️ Failed to generate TL;DR.");
-      } catch (e) {
-        console.error("❌ FollowUp also failed:", e);
-      }
-    }
-  }
 
   // --- /matchup command ---
   else if (interaction.commandName === "matchup") {

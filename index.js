@@ -219,40 +219,59 @@ async function safeReply(interaction, content) {
 }
 
 // === Interaction Handling ===
-          client.on("interactionCreate", async (interaction) => {
-            if (!interaction.isChatInputCommand()) return;
+                client.on("interactionCreate", async (interaction) => {
+                  if (!interaction.isChatInputCommand()) return;
 
-            // --- /tldr command ---
-              if (interaction.commandName === "tldr") {
-                const hours = interaction.options.getInteger("hours") || 2;
+                    if (interaction.commandName === "tldr") {
+                      const hours = interaction.options.getInteger("hours") || 2;
 
-                try {
-                  // Send ephemeral initial message
-                  await interaction.reply({ content: `⏳ Generating TL;DR for the last ${hours} hours...`, flags: 1 << 6 });
+                      try {
+                        await interaction.deferReply();
+                        console.log("✅ /tldr command triggered; fetching messages from last", hours, "hours");
 
-                  const cutoff = Date.now() - hours * 60 * 60 * 1000;
-                  const fetchedMessages = await interaction.channel.messages.fetch({ limit: 100 });
-                  const messages = Array.from(fetchedMessages.values())
-                    .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
-                    .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+                        const cutoff = Date.now() - hours * 60 * 60 * 1000;
+                        let messages = [];
+                        let lastId = null;
 
-                  if (!messages.length) {
-                    await interaction.editReply(`🤷 Nothing to summarize in the last ${hours} hours.`);
-                    return;
-                  }
+                        while (true) {
+                          const options = { limit: 100 };
+                          if (lastId) options.before = lastId;
 
-                  const chatPayload = messages.map(m => ({ role: "user", content: m.content }));
-                  const summary = await summarizeChat(chatPayload, hours);
+                          const fetched = await interaction.channel.messages.fetch(options);
+                          if (!fetched.size) break;
 
-                  await interaction.editReply(summary);
+                          const filtered = Array.from(fetched.values()).filter(m => !m.author.bot && m.createdTimestamp >= cutoff);
+                          messages.push(...filtered);
 
-                } catch (err) {
-                  console.error("❌ Error in /tldr handler:", err);
-                  try { await interaction.editReply("⚠️ Failed to generate TL;DR."); } catch {}
-                }
-              }
+                          lastId = fetched.last().id;
+                          if (fetched.last().createdTimestamp < cutoff) break;
+                        }
 
+                        // Sort oldest → newest
+                        messages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
 
+                        if (!messages.length) {
+                          return await interaction.editReply(`🤷 Nothing to summarize in the last ${hours} hours.`);
+                        }
+
+                        // Transform messages into text-only for your TL;DR function
+                        const chatPayload = messages.map(m => ({ role: "user", content: m.content }));
+
+                        const summary = await summarizeChat(chatPayload, hours);
+                        await interaction.editReply(summary);
+
+                      } catch (err) {
+                        console.error("❌ Error in /tldr handler:", err);
+
+                        if (interaction.deferred || interaction.replied) {
+                          try { await interaction.followUp("⚠️ Failed to generate TL;DR."); } catch {}
+                        } else {
+                          try { await interaction.reply("⚠️ Failed to generate TL;DR."); } catch {}
+                        }
+                      }
+                    }
+
+          
 
   // --- /matchup command ---
   else if (interaction.commandName === "matchup") {

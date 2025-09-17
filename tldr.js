@@ -1,7 +1,9 @@
 // tldr.js
-import cohere from 'cohere-ai';
+import { CohereClient } from "cohere-ai";
 
-cohere.init(process.env.COHERE_API_KEY);
+const client = new CohereClient({
+  token: process.env.COHERE_API_KEY,
+});
 
 export async function summarizeChat(messages, hours) {
   // Flatten messages into a chat log
@@ -16,7 +18,7 @@ ${chatLog}
 `;
 
   try {
-    const response = await cohere.generate({
+    const response = await client.generate({
       model: 'command-xlarge-nightly',    // Cohere instruction-following model
       prompt: prompt,
       max_tokens: 500,
@@ -24,7 +26,7 @@ ${chatLog}
       stop_sequences: ["\n\n"]
     });
 
-    return response.body.generations[0].text.trim();
+    return response.generations[0].text.trim();
   } catch (err) {
     console.error('❌ Cohere generate error:', err);
     return '⚠️ Failed to generate TL;DR summary.';

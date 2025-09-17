@@ -6,34 +6,47 @@ const client = new CohereClient({
 });
 
 export async function summarizeChat(messages, hours) {
-  console.log(`➡️ summarizeChat called with ${messages.length} messages; cutoff (hours): ${hours}`);
+  if (!messages || messages.length === 0) {
+    console.log("➡️ summarizeChat called with no messages");
+    return "🤷 Nothing to summarize.";
+  }
 
-  // Turn the array of messages into a single block of text
-  const chatText = messages
-    .map((m) => `${m.role === "user" ? m.username || "User" : m.role}: ${m.content}`)
-    .join("\n");
+  const safeMessages = messages
+    .filter(m => m && typeof m.content === "string" && m.content.trim())
+    .map(m => ({
+      username: m.author?.username || "Unknown",
+      content: m.content.trim(),
+    }));
 
-  const prompt = `
-You are Ticklebot, a sarcastic and insulting summarizer. 
-Summarize the following Discord messages from the last ${hours} hours in a funny, mocking TL;DR style. 
-Keep it short, biting, and dismissive.
+  if (!safeMessages.length) {
+    return "🤷 No valid messages to summarize.";
+  }
 
-Messages:
-${chatText}
-`;
+  console.log(`➡️ summarizeChat called with ${safeMessages.length} messages; cutoff (hours): ${hours}`);
+
+  const chatLog = safeMessages
+    .map(m => `${m.username}: ${m.content}`)
+    .join("\n")
+    .slice(-5000);  // keep the last 5000 chars or so
 
   try {
     const response = await client.chat({
-      model: "command-r-plus",
-      message: prompt,
+      model: "command-xlarge-nightly",  // <-- use a valid model here
+      message: `Summarize the last ${hours} hours of Discord messages in a sarcastic TL;DR style:\n${chatLog}`,
       temperature: 0.8,
       max_tokens: 400,
     });
 
-    console.log("✅ Cohere chat success");
-    return response.text?.trim() || "⚠️ No TL;DR could be generated.";
+    const summaryText = response.text?.trim();
+    if (!summaryText) {
+      console.warn("⚠️ Cohere response text is empty:", JSON.stringify(response, null, 2));
+      return "⚠️ Couldn’t get summary text from Cohere.";
+    }
+
+    console.log("✅ Cohere responded:", summaryText);
+    return summaryText;
   } catch (err) {
     console.error("❌ Cohere chat error:", err);
-    return "⚠️ Failed to generate TL;DR from Cohere.";
+    return "⚠️ Failed to generate TL;DR summary.";
   }
 }

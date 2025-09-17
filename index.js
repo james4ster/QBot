@@ -222,31 +222,40 @@ async function safeReply(interaction, content) {
                           client.on("interactionCreate", async (interaction) => {
                             if (!interaction.isChatInputCommand()) return;
 
-                            if (interaction.commandName === "tldr") {
-                              try {
-                                // ✅ Immediately defer as EPHEMERAL
-                                await interaction.deferReply({ ephemeral: true }); 
-
-                                // Now do the slow stuff
-                                const hours = interaction.options.getInteger("hours") || 2;
-                                console.log("✅ /tldr triggered, fetching messages from last", hours, "hours");
-
-                                // ...fetch messages and summarize...
-                                console.log("🛠 Preparing chatPayload...");
-                                console.log(chatPayload);
-
-                                const summary = await summarizeChat(chatPayload, hours);
-
-                                await interaction.editReply(summary); // safe now
-                              } catch (err) {
-                                console.error("❌ Error in /tldr handler:", err);
+                              if (interaction.commandName === "tldr") {
                                 try {
-                                  await interaction.editReply("⚠️ Failed to generate TL;DR.");
-                                } catch {
-                                  try { await interaction.followUp("⚠️ Failed to generate TL;DR."); } catch {}
+                                  // ⚡ Defer reply as ephemeral
+                                  await interaction.deferReply({ flags: 64 }); // flags=64 is ephemeral
+
+                                  const hours = interaction.options.getInteger("hours") || 2;
+                                  console.log("✅ /tldr triggered, fetching messages from last", hours, "hours");
+
+                                  const cutoff = Date.now() - hours * 60 * 60 * 1000;
+                                  const channel = interaction.channel;
+
+                                  // Fetch last 100 messages
+                                  const fetched = await channel.messages.fetch({ limit: 100 });
+
+                                  // Filter messages by cutoff time and exclude bots
+                                  const chatPayload = Array.from(fetched.values())
+                                    .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
+                                    .sort((a,b) => a.createdTimestamp - b.createdTimestamp);
+
+                                  console.log(`🛠 Fetched ${chatPayload.length} messages for TL;DR`);
+
+                                  const summary = await summarizeChat(chatPayload, hours);
+
+                                  await interaction.editReply(summary);
+                                } catch (err) {
+                                  console.error("❌ Error in /tldr handler:", err);
+                                  try {
+                                    await interaction.editReply("⚠️ Failed to generate TL;DR.");
+                                  } catch {
+                                    try { await interaction.followUp("⚠️ Failed to generate TL;DR."); } catch {}
+                                  }
                                 }
                               }
-                            }
+
            
 
   // --- /matchup command ---

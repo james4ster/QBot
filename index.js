@@ -211,42 +211,38 @@
   })();
 
   // === Interaction Handling ===
-  client.on('interactionCreate', async interaction => {
-    if (!interaction.isChatInputCommand()) return;
+    client.on("interactionCreate", async interaction => {
+      if (!interaction.isChatInputCommand()) return;
 
-    // === /tldr ===
-    if (interaction.commandName === 'tldr') {
-      try {
-        await interaction.deferReply();
+      if (interaction.commandName === "tldr") {
+        try {
+          console.log("✅ /tldr command triggered");
 
-        const hours = interaction.options.getInteger('hours');
-        const cutoff = Date.now() - hours * 60 * 60 * 1000;
+          // Immediately acknowledge, gives you 15 minutes to respond
+          await interaction.deferReply();
 
-        let messages = await interaction.channel.messages.fetch({ limit: 100 });
-        messages = messages.filter(m => !m.author.bot && m.createdTimestamp >= cutoff).reverse();
+          // Grab messages (replace with your fetch logic)
+          const messages = await fetchMessages(interaction);
 
-        if (!messages.size) {
-          return interaction.editReply(`🤷 Nothing to summarize in the last ${hours} hours.`);
+          if (!messages.length) {
+            await interaction.editReply("🤷 Nothing to summarize in the last 2 hours.");
+            return;
+          }
+
+          const summary = await summarizeChat(messages, 2);
+          await interaction.editReply(summary);
+        } catch (err) {
+          console.error("❌ Error in /tldr handler:", err);
+          // If editReply fails, try followUp as a fallback
+          try {
+            await interaction.followUp("⚠️ Failed to generate TL;DR.");
+          } catch (e) {
+            console.error("❌ FollowUp also failed:", e);
+          }
         }
-
-        const summaryText = await summarizeChat(messages, hours);
-
-        await interaction.editReply({
-          embeds: [
-            {
-              title: `📰 TL;DR — Last ${hours} Hours`,
-              description: summaryText,
-              color: 0xffa500,
-              footer: { text: `Requested by ${interaction.user.username}` },
-            }
-          ]
-        });
-
-      } catch (err) {
-        console.error(err);
-        await interaction.editReply("❌ Error generating TL;DR.");
       }
-    }
+    });
+
 
     // === /matchup ===
     if (interaction.commandName === 'matchup') {

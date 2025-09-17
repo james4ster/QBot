@@ -219,68 +219,35 @@ async function safeReply(interaction, content) {
 }
 
 // === Interaction Handling ===
-                      client.on("interactionCreate", async (interaction) => {
-                        if (!interaction.isChatInputCommand()) return;
+                          client.on("interactionCreate", async (interaction) => {
+                            if (!interaction.isChatInputCommand()) return;
 
-                        if (interaction.commandName === "tldr") {
-                          const hours = interaction.options.getInteger("hours") || 2;
+                            if (interaction.commandName === "tldr") {
+                              try {
+                                // ✅ Immediately defer as EPHEMERAL
+                                await interaction.deferReply({ ephemeral: true }); 
 
-                          try {
-                            // ✅ Immediately defer reply so Discord doesn't expire the interaction
-                            await interaction.deferReply({ flags: 64 });
+                                // Now do the slow stuff
+                                const hours = interaction.options.getInteger("hours") || 2;
+                                console.log("✅ /tldr triggered, fetching messages from last", hours, "hours");
 
-                            console.log("✅ /tldr triggered, fetching messages from last", hours, "hours");
+                                // ...fetch messages and summarize...
+                                console.log("🛠 Preparing chatPayload...");
+                                console.log(chatPayload);
 
-                            const cutoff = Date.now() - hours * 60 * 60 * 1000;
-                            let allMessages = [];
+                                const summary = await summarizeChat(chatPayload, hours);
 
-                            // Fetch messages in batches of 100 (max allowed)
-                            let lastId;
-                           
-                            while (true) {
-                              const options = { limit: 100 };
-                              if (lastId) options.before = lastId;
-
-                              const fetched = await interaction.channel.messages.fetch(options);
-                              if (!fetched.size) break;
-
-                              const msgs = Array.from(fetched.values())
-                                .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
-                                .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-
-                              if (!msgs.length) break; // stop if nothing in this batch matches
-                              allMessages = allMessages.concat(msgs);
-                              lastId = fetched.last().id;
-
-                              if (fetched.last().createdTimestamp < cutoff) break;
+                                await interaction.editReply(summary); // safe now
+                              } catch (err) {
+                                console.error("❌ Error in /tldr handler:", err);
+                                try {
+                                  await interaction.editReply("⚠️ Failed to generate TL;DR.");
+                                } catch {
+                                  try { await interaction.followUp("⚠️ Failed to generate TL;DR."); } catch {}
+                                }
+                              }
                             }
-
-
-                            if (!allMessages.length) {
-                              return await interaction.editReply(`🤷 Nothing to summarize in the last ${hours} hours.`);
-                            }
-
-                            // Transform for your TL;DR function
-                            const chatPayload = allMessages.map(m => ({ role: "user", content: m.content }));
-
-                            // ✅ Generate summary
-                            const summary = await summarizeChat(chatPayload, hours);
-
-                            // ✅ Send final reply
-                            await interaction.editReply(summary);
-
-                          } catch (err) {
-                            console.error("❌ Error in /tldr handler:", err);
-                            try {
-                              await interaction.editReply("⚠️ Failed to generate TL;DR.");
-                            } catch {
-                              // fallback if interaction already expired
-                              try { await interaction.followUp("⚠️ Failed to generate TL;DR."); } catch {}
-                            }
-                          }
-                        }
-
-          
+           
 
   // --- /matchup command ---
   else if (interaction.commandName === "matchup") {

@@ -211,53 +211,49 @@
   })();
 
   // === Interaction Handling ===
-        client.on("interactionCreate", async (interaction) => {
-          if (!interaction.isChatInputCommand()) return;
+client.on("interactionCreate", async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
 
-          if (interaction.commandName === "tldr") {
-            const hours = interaction.options.getInteger("hours") || 2;
+  if (interaction.commandName === "tldr") {
+    const hours = interaction.options.getInteger("hours") || 2;
 
-            try {
-              console.log("✅ /tldr command triggered; fetching messages from last", hours, "hours");
+    try {
+      // ✅ Immediately defer
+      await interaction.deferReply();
 
-              const cutoff = Date.now() - hours * 60 * 60 * 1000;
+      console.log("✅ /tldr command triggered; fetching messages from last", hours, "hours");
 
-              // --- Fetch recent messages ---
-              let fetchedMessages = await interaction.channel.messages.fetch({ limit: 50 });
-              const messages = Array.from(fetchedMessages.values())
-                .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
-                .sort((a, b) => a.createdTimestamp - b.createdTimestamp); // oldest first
+      const cutoff = Date.now() - hours * 60 * 60 * 1000;
 
-              if (!messages.length) {
-                // Safe immediate reply if no messages
-                await interaction.reply(`🤷 Nothing to summarize in the last ${hours} hours.`);
-                return;
-              }
+      // Fetch last 50 messages (adjust if needed)
+      const fetchedMessages = await interaction.channel.messages.fetch({ limit: 150 });
+      const messages = Array.from(fetchedMessages.values())
+        .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
+        .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
 
-              // --- Defer reply to get extra processing time ---
-              await interaction.deferReply();
+      if (!messages.length) {
+        await interaction.editReply(`🤷 Nothing to summarize in the last ${hours} hours.`);
+        return;
+      }
 
-              // --- Generate summary via Cohere Chat API ---
-              const summary = await summarizeChat(messages, hours);
+      const summary = await summarizeChat(messages, hours);
 
-              // --- Send the summary ---
-              await interaction.editReply(summary);
+      await interaction.editReply(summary);
 
-            } catch (err) {
-              console.error("❌ Error in /tldr handler:", err);
+    } catch (err) {
+      console.error("❌ Error in /tldr handler:", err);
+      try {
+        if (interaction.deferred || interaction.replied) {
+          await interaction.editReply("⚠️ Failed to generate TL;DR.");
+        } else {
+          await interaction.reply("⚠️ Failed to generate TL;DR.");
+        }
+      } catch (followUpErr) {
+        console.error("❌ FollowUp also failed:", followUpErr);
+      }
+    }
+  }
 
-              // Only attempt followUp if the interaction has been deferred or replied
-              try {
-                if (interaction.deferred || interaction.replied) {
-                  await interaction.followUp("⚠️ Failed to generate TL;DR.");
-                } else {
-                  await interaction.reply("⚠️ Failed to generate TL;DR.");
-                }
-              } catch (followUpErr) {
-                console.error("❌ FollowUp also failed:", followUpErr);
-              }
-            }
-          }
 
 
   // --- /matchup command ---

@@ -219,78 +219,71 @@ async function safeReply(interaction, content) {
 }
 
 // === Interaction Handling ===
-client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
+    client.on("interactionCreate", async (interaction) => {
+      if (!interaction.isChatInputCommand()) return;
 
-  if (interaction.commandName === "tldr") {
-    try {
-      // Defer immediately to avoid "Unknown interaction"
-      await interaction.deferReply();
-
-      const hours = interaction.options.getInteger("hours") || 2;
-      const cutoff = Date.now() - hours * 60 * 60 * 1000;
-
-      let chatPayload = [];
-
-      for (const [channelId, channel] of interaction.guild.channels.cache) {
-        if (!channel.isTextBased() || !channel.viewable) continue;
-
-        // Also check ReadMessageHistory permission
-        const perms = channel.permissionsFor(interaction.guild.members.me);
-        if (!perms || !perms.has("ReadMessageHistory")) continue;
-
+      if (interaction.commandName === "tldr") {
         try {
-          const messages = await channel.messages.fetch({ limit: 50 });
-          const humanMessages = Array.from(messages.values())
-            .filter(m => m.author && !m.author.bot && m.createdTimestamp >= cutoff)
-            .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+          // Defer immediately to avoid "Unknown interaction"
+          await interaction.deferReply();
 
-          chatPayload.push(...humanMessages);
+          const hours = interaction.options.getInteger("hours") || 2;
+          const cutoff = Date.now() - hours * 60 * 60 * 1000;
+
+          let chatPayload = [];
+
+          for (const [channelId, channel] of interaction.guild.channels.cache) {
+            if (!channel.isTextBased() || !channel.viewable) continue;
+
+            const perms = channel.permissionsFor(interaction.guild.members.me);
+            if (!perms || !perms.has("ReadMessageHistory")) continue;
+
+            try {
+              const messages = await channel.messages.fetch({ limit: 50 });
+              const humanMessages = Array.from(messages.values())
+                .filter(m => m.author && !m.author.bot && m.createdTimestamp >= cutoff)
+                .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+
+              chatPayload.push(...humanMessages);
+            } catch (err) {
+              console.error(`❌ Failed to fetch messages from channel ${channelId}:`, err);
+            }
+          }
+
+          console.log(`🛠 Fetched ${chatPayload.length} human messages across accessible channels`);
+
+          if (!chatPayload.length) {
+            await interaction.editReply(`⚠️ No human messages found in the last ${hours} hours.`);
+            return;
+          }
+
+          // Prepare payload for summarizeChat
+          const payloadForCohere = chatPayload.map(msg => ({
+            author: { username: msg.author.username || "Unknown" },
+            content: msg.content || ""
+          }));
+
+          // Call your Cohere helper
+          const summary = await summarizeChat(payloadForCohere, hours);
+          console.log("📝 About to send summary:", summary);
+
+          // Edit reply exactly once
+          await interaction.editReply(typeof summary === "string" ? summary : JSON.stringify(summary));
+
         } catch (err) {
-          console.error(`❌ Failed to fetch messages from channel ${channelId}:`, err);
+          console.error("❌ Error in /tldr handler:", err);
+
+          try {
+            if (interaction.deferred) {
+              await interaction.editReply("⚠️ Failed to generate TL;DR.");
+            } else {
+              await interaction.reply("⚠️ Failed to generate TL;DR.");
+            }
+          } catch (e2) {
+            console.error("❌ Fallback reply also failed:", e2);
+          }
         }
       }
-
-      console.log(`🛠 Fetched ${chatPayload.length} human messages across accessible channels`);
-
-      if (!chatPayload.length) {
-        await interaction.editReply(`⚠️ No human messages found in the last ${hours} hours.`);
-        return;
-      }
-
-      // Prepare payload that matches tldr.js expectations
-      const payloadForCohere = chatPayload.map(msg => ({
-        author: { username: msg.author.username || "Unknown" },
-        content: msg.content || ""
-      }));
-
-      const summary = await summarizeChat(payloadForCohere, hours);
-
-      console.log("📝 About to send summary:", summary);
-
-      let finalSummary = typeof summary === "string" ? summary : JSON.stringify(summary);
-
-      // Handle Discord’s 2000 char limit
-      if (finalSummary.length > 2000) {
-        finalSummary = finalSummary.slice(0, 1990) + "… (truncated)";
-      }
-
-      await interaction.editReply(finalSummary);
-      console.log("✅ Reply posted to Discord");
-
-    } catch (err) {
-      console.error("❌ Error in /tldr handler:", err);
-      try {
-        if (interaction.deferred) {
-          await interaction.editReply("⚠️ Failed to generate TL;DR.");
-        } else {
-          await interaction.reply("⚠️ Failed to generate TL;DR.");
-        }
-      } catch (e2) {
-        console.error("❌ Fallback reply also failed:", e2);
-      }
-    }
-  }
 
   // --- /matchup command ---
   else if (interaction.commandName === "matchup") {

@@ -6,32 +6,41 @@ const client = new CohereClient({
 });
 
 export async function summarizeChat(messages, hours) {
-  console.log("➡️ summarizeChat called with", messages.size, "messages; cutoff (hours):", hours);
+  if (!messages || messages.length === 0) {
+    console.log("➡️ summarizeChat called with no messages");
+    return "🤷 Nothing to summarize.";
+  }
 
+  console.log("➡️ summarizeChat called with", messages.length, "messages; cutoff (hours):", hours);
+
+  // Format messages as a chat log
   const chatLog = messages
     .map(m => `${m.author.username}: ${m.content}`)
     .join("\n");
 
-  const prompt = `
-Summarize the following Discord chat log into a sarcastic, newspaper-style narrative.
-Ignore all bot messages. Maximum length: 150 words. Write as a single narrative paragraph.
-
-Chat Log (last ${hours} hours):
-${chatLog}
-`;
-
   try {
-    const response = await client.generate({
-      model: "command-xlarge", // use stable model
-      prompt,
+    const response = await client.chat({
+      model: "command-r-plus", // or whichever Chat model you have access to
+      messages: [
+        {
+          role: "system",
+          content: "You are a witty sports columnist who summarizes Discord chat sarcastically in one paragraph."
+        },
+        {
+          role: "user",
+          content: `Summarize the following Discord chat log (last ${hours} hours):\n${chatLog}`
+        }
+      ],
       max_tokens: 500,
-      temperature: 0.7,
+      temperature: 0.7
     });
 
-    console.log("✅ Cohere responded:", response);
-    return response.generations[0].text.trim();
+    // Chat API returns text in response.output[0].content[0].text
+    const summary = response.output[0].content[0].text;
+    console.log("✅ Cohere responded:", summary);
+    return summary.trim();
   } catch (err) {
-    console.error("❌ Cohere generate error:", err);
+    console.error("❌ Cohere chat error:", err);
     return "⚠️ Failed to generate TL;DR summary.";
   }
 }

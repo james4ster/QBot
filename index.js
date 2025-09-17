@@ -220,60 +220,64 @@ async function safeReply(interaction, content) {
 
 // === Interaction Handling ===
                                       // === Interaction Handling ===
-                                      client.on("interactionCreate", async (interaction) => {
-                                        if (!interaction.isChatInputCommand()) return;
+                                          // === /tldr Command Handler ===
+                                          client.on("interactionCreate", async (interaction) => {
+                                            if (!interaction.isChatInputCommand()) return;
 
-                                        if (interaction.commandName === "tldr") {
-                                          try {
-                                            // Defer the reply (ephemeral is deprecated but still works)
-                                            await interaction.deferReply({ ephemeral: true });
-
-                                            const hours = interaction.options.getInteger("hours") || 2;
-                                            const cutoff = Date.now() - hours * 60 * 60 * 1000;
-
-                                            let chatPayload = [];
-
-                                            // Loop through all accessible channels in the guild
-                                            for (const [channelId, channel] of interaction.guild.channels.cache) {
-                                              if (!channel.isTextBased() || !channel.viewable) continue;
-
+                                            if (interaction.commandName === "tldr") {
                                               try {
-                                                const messages = await channel.messages.fetch({ limit: 50 }); // adjust limit as needed
-                                                const humanMessages = Array.from(messages.values())
-                                                  .filter(m => m.author && !m.author.bot && m.createdTimestamp >= cutoff)
-                                                  .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+                                                // Defer reply (public by default)
+                                                await interaction.deferReply();
 
-                                                chatPayload.push(...humanMessages);
+                                                const hours = interaction.options.getInteger("hours") || 2;
+                                                const cutoff = Date.now() - hours * 60 * 60 * 1000;
+
+                                                let chatPayload = [];
+
+                                                // Loop through all accessible channels
+                                                for (const [channelId, channel] of interaction.guild.channels.cache) {
+                                                  if (!channel.isTextBased() || !channel.viewable) continue;
+
+                                                  try {
+                                                    // Fetch last 100 messages from each channel
+                                                    const messages = await channel.messages.fetch({ limit: 100 });
+                                                    const humanMessages = Array.from(messages.values())
+                                                      .filter(m => m.author && !m.author.bot && m.createdTimestamp >= cutoff)
+                                                      .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+
+                                                    chatPayload.push(...humanMessages);
+                                                  } catch (err) {
+                                                    console.error(`❌ Failed to fetch messages from channel ${channelId}:`, err);
+                                                  }
+                                                }
+
+                                                console.log(`🛠 Fetched ${chatPayload.length} human messages across accessible channels`);
+
+                                                if (!chatPayload.length) {
+                                                  await interaction.editReply(`⚠️ No human messages found in the last ${hours} hours.`);
+                                                  return;
+                                                }
+
+                                                // Map messages to format expected by updated tldr.js
+                                                const payloadForCohere = chatPayload.map(msg => ({
+                                                  author: { username: msg.author.username || "Unknown" },
+                                                  content: msg.content || ""
+                                                }));
+
+                                                // Call summarizeChat
+                                                const summary = await summarizeChat(payloadForCohere, hours);
+
+                                                await interaction.editReply(summary);
+
                                               } catch (err) {
-                                                console.error(`❌ Failed to fetch messages from channel ${channelId}:`, err);
+                                                console.error("❌ Error in /tldr handler:", err);
+                                                try {
+                                                  await interaction.editReply("⚠️ Failed to generate TL;DR.");
+                                                } catch {
+                                                  try { await interaction.followUp("⚠️ Failed to generate TL;DR."); } catch {}
+                                                }
                                               }
                                             }
-
-                                            console.log(`🛠 Fetched ${chatPayload.length} human messages across accessible channels`);
-
-                                            if (!chatPayload.length) {
-                                              await interaction.editReply(`⚠️ No human messages found in the last ${hours} hours.`);
-                                              return;
-                                            }
-
-                                            // Map messages into a format your tldr.js expects
-                                            const payloadForCohere = chatPayload.map(msg => ({
-                                              username: msg.author.username,
-                                              message: msg.content || ""
-                                            }));
-
-                                            const summary = await summarizeChat(payloadForCohere, hours);
-                                            await interaction.editReply(summary);
-
-                                          } catch (err) {
-                                            console.error("❌ Error in /tldr handler:", err);
-                                            try {
-                                              await interaction.editReply("⚠️ Failed to generate TL;DR.");
-                                            } catch {
-                                              try { await interaction.followUp("⚠️ Failed to generate TL;DR."); } catch {}
-                                            }
-                                          }
-                                        }
 
   // --- /matchup command ---
   else if (interaction.commandName === "matchup") {

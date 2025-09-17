@@ -219,44 +219,55 @@ async function safeReply(interaction, content) {
 }
 
 // === Interaction Handling ===
-client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
+          client.on("interactionCreate", async (interaction) => {
+            if (!interaction.isChatInputCommand()) return;
 
-  // --- /tldr command ---
-    if (interaction.commandName === "tldr") {
-      const hours = interaction.options.getInteger("hours") || 2;
+            // --- /tldr command ---
+            if (interaction.commandName === "tldr") {
+              const hours = interaction.options.getInteger("hours") || 2;
 
-      try {
-        await interaction.deferReply();
-        console.log("✅ /tldr command triggered; fetching messages from last", hours, "hours");
+              try {
+                // Immediately send ephemeral processing message
+                await interaction.reply({ content: `⏳ Listen....Hang tight... ${hours} hours of details coming up...`, ephemeral: true });
 
-        const cutoff = Date.now() - hours * 60 * 60 * 1000;
-        const fetchedMessages = await interaction.channel.messages.fetch({ limit: 100 });
-        const messages = Array.from(fetchedMessages.values())
-          .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
-          .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+                console.log(`✅ /tldr command triggered; fetching messages from last ${hours} hours`);
 
-        if (!messages.length) {
-          return await interaction.editReply(`🤷 Nothing to summarize in the last ${hours} hours.`);
-        }
+                // Fetch last 100 messages from channel
+                const cutoff = Date.now() - hours * 60 * 60 * 1000;
+                const fetchedMessages = await interaction.channel.messages.fetch({ limit: 100 });
 
-        // Transform messages into text-only for Cohere
-        const chatPayload = messages.map(m => ({ role: "user", content: m.content }));
+                // Filter and sort messages
+                const messages = Array.from(fetchedMessages.values())
+                  .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
+                  .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
 
-        const summary = await summarizeChat(chatPayload, hours);
-        await interaction.editReply(summary);
+                if (!messages.length) {
+                  await interaction.editReply({ content: `🤷 Nothing to summarize in the last ${hours} hours.` });
+                  return;
+                }
 
-      } catch (err) {
-        console.error("❌ Error in /tldr handler:", err);
+                // Transform messages for LLM
+                const chatPayload = messages.map(m => ({ role: "user", content: m.content }));
 
-        // Use followUp if interaction might have timed out
-        if (interaction.deferred || interaction.replied) {
-          try { await interaction.followUp("⚠️ Failed to generate TL;DR."); } catch {}
-        } else {
-          try { await interaction.reply("⚠️ Failed to generate TL;DR."); } catch {}
-        }
-      }
-    }
+                // Generate summary via your TLDR module
+                const summary = await summarizeChat(chatPayload, hours);
+
+                // Edit ephemeral message with final summary
+                await interaction.editReply({ content: summary });
+
+              } catch (err) {
+                console.error("❌ Error in /tldr handler:", err);
+
+                // Attempt safe fallback
+                try {
+                  if (interaction.deferred || interaction.replied) {
+                    await interaction.followUp({ content: "⚠️ Failed to generate TL;DR.", ephemeral: true });
+                  } else {
+                    await interaction.reply({ content: "⚠️ Failed to generate TL;DR.", ephemeral: true });
+                  }
+                } catch {}
+              }
+            }
 
 
   // --- /matchup command ---

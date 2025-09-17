@@ -222,74 +222,72 @@ async function safeReply(interaction, content) {
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  if (interaction.commandName === "tldr") {
-    try {
-      // 1️⃣ Defer the reply immediately
-      await interaction.deferReply();
-
-      const hours = interaction.options.getInteger("hours") || 2;
-      const cutoff = Date.now() - hours * 60 * 60 * 1000;
-
-      // 2️⃣ Fetch messages
-      let chatPayload = [];
-      for (const [channelId, channel] of interaction.guild.channels.cache) {
-        if (!channel.isTextBased() || !channel.viewable) continue;
-        const perms = channel.permissionsFor(interaction.guild.members.me);
-        if (!perms || !perms.has("ReadMessageHistory")) continue;
-
-        try {
-          const messages = await channel.messages.fetch({ limit: 50 });
-          const humanMessages = Array.from(messages.values())
-            .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
-            .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-
-          chatPayload.push(...humanMessages);
-        } catch (err) {
-          console.error(`Failed to fetch messages from ${channelId}:`, err);
-        }
-      }
-
-      if (!chatPayload.length) {
-        // ✅ Only edit reply once
-        await interaction.editReply(`⚠️ No human messages found in the last ${hours} hours.`);
-        return;
-      }
-
-      // 3️⃣ Build prompt for Cohere
-      const summaryPrompt = `
-You are summarizing recent Discord messages.
-
-Rules:
-- Mention usernames of the people who posted messages.
-- Include 1–2 sentence snippets.
-- Make it funny, sarcastic, or playful.
-- Focus on main interactions, conflicts, or highlights.
-- Do NOT invent usernames or messages.
-
-Messages:
-${chatPayload.map(m => `${m.author.username}: ${m.content}`).join("\n")}
-      `;
-
-      // 4️⃣ Generate summary
-      const summary = await summarizeChatWithPrompt(summaryPrompt);
-
-      console.log("📝 About to send summary:", summary);
-
-      // 5️⃣ Edit the deferred reply once
-      await interaction.editReply(summary);
-
-    } catch (err) {
-      console.error("❌ Error in /tldr handler:", err);
-      // ❌ Do NOT try another reply if already deferred
+    if (interaction.commandName === "tldr") {
       try {
-        if (!interaction.deferred) {
-          await interaction.reply("⚠️ Failed to generate TL;DR.");
+        // 1️⃣ Defer reply immediately
+        await interaction.deferReply();
+
+        const hours = interaction.options.getInteger("hours") || 2;
+        const cutoff = Date.now() - hours * 60 * 60 * 1000;
+
+        // 2️⃣ Fetch human messages
+        let chatPayload = [];
+        for (const [channelId, channel] of interaction.guild.channels.cache) {
+          if (!channel.isTextBased() || !channel.viewable) continue;
+          const perms = channel.permissionsFor(interaction.guild.members.me);
+          if (!perms || !perms.has("ReadMessageHistory")) continue;
+
+          try {
+            const messages = await channel.messages.fetch({ limit: 50 });
+            const humans = Array.from(messages.values())
+              .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
+              .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+
+            chatPayload.push(...humans);
+          } catch (err) {
+            console.error(`Failed to fetch messages from ${channelId}:`, err);
+          }
         }
-      } catch (e2) {
-        console.error("Fallback reply also failed:", e2);
+
+        if (!chatPayload.length) {
+          return await interaction.editReply(`⚠️ No human messages found in the last ${hours} hours.`);
+        }
+
+        // 3️⃣ Build prompt for Cohere
+        const summaryPrompt = `
+    You are summarizing recent Discord messages.
+
+    Rules:
+    - Mention usernames of the people who posted messages.
+    - Include 1–2 sentence snippets.
+    - Make it funny, sarcastic, or playful.
+    - Focus on main interactions, conflicts, or highlights.
+    - Do NOT invent usernames or messages.
+
+    Messages:
+    ${chatPayload.map(m => `${m.author.username}: ${m.content}`).join("\n")}
+        `;
+
+        // 4️⃣ Call summarizeChat with the messages array and hours
+        const summary = await summarizeChat(chatPayload, hours);
+
+        console.log("📝 About to send summary:", summary);
+
+        // 5️⃣ Edit deferred reply with summary
+        await interaction.editReply(summary);
+
+      } catch (err) {
+        console.error("❌ Error in /tldr handler:", err);
+        try {
+          // Only reply if we haven't deferred yet
+          if (!interaction.deferred) await interaction.reply("⚠️ Failed to generate TL;DR.");
+          else await interaction.editReply("⚠️ Failed to generate TL;DR.");
+        } catch (e2) {
+          console.error("Fallback reply also failed:", e2);
+        }
       }
     }
-  }
+
 
 
 

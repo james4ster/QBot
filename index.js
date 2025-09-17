@@ -211,128 +211,134 @@
   })();
 
   // === Interaction Handling ===
-    client.on("interactionCreate", async interaction => {
-      if (!interaction.isChatInputCommand()) return;
+client.on("interactionCreate", async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
 
-      if (interaction.commandName === "tldr") {
-        try {
-          console.log("✅ /tldr command triggered");
+  // --- /tldr command ---
+  if (interaction.commandName === "tldr") {
+    try {
+      console.log("✅ /tldr command triggered");
 
-          // Immediately acknowledge, gives you 15 minutes to respond
-          await interaction.deferReply();
+      // Immediately acknowledge, gives you 15 minutes to respond
+      await interaction.deferReply();
 
-          // Grab messages (replace with your fetch logic)
-          const messages = await fetchMessages(interaction);
+      // Replace with your logic to fetch messages
+      const messages = await fetchMessages(interaction);
 
-          if (!messages.length) {
-            await interaction.editReply("🤷 Nothing to summarize in the last 2 hours.");
-            return;
-          }
-
-          const summary = await summarizeChat(messages, 2);
-          await interaction.editReply(summary);
-        } catch (err) {
-          console.error("❌ Error in /tldr handler:", err);
-          // If editReply fails, try followUp as a fallback
-          try {
-            await interaction.followUp("⚠️ Failed to generate TL;DR.");
-          } catch (e) {
-            console.error("❌ FollowUp also failed:", e);
-          }
-        }
+      if (!messages.length) {
+        await interaction.editReply("🤷 Nothing to summarize in the last 2 hours.");
+        return;
       }
-    });
 
-
-    // === /matchup ===
-    if (interaction.commandName === 'matchup') {
+      const summary = await summarizeChat(messages, 2);
+      await interaction.editReply(summary);
+    } catch (err) {
+      console.error("❌ Error in /tldr handler:", err);
+      // Fallback in case editReply fails
       try {
-        await interaction.deferReply();
-
-        const team1Abbr = interaction.options.getString('team1').toUpperCase();
-        const team2Abbr = interaction.options.getString('team2').toUpperCase();
-
-        const stats = await getTeamStats();
-        const team1Stats = stats[team1Abbr];
-        const team2Stats = stats[team2Abbr];
-
-        if (!team1Stats || !team2Stats) {
-          return interaction.editReply("❌ Stats not found for one or both teams.");
-        }
-
-        const statsToCompare = [
-          'GP','W','L','T','OTL','PTS','W%','GF','GF/G','GA','GA/G',
-          'SH','S/G','SH%','SHA','SA/G','SD','FOW','FO','FO%',
-          'H','H/G','HA','HD','BAG','BA','BA%','1xG','1xA','1x%',
-          'PS','PSA','PS%'
-        ];
-
-        const pad = (str, len = 7) => str.toString().padEnd(len, ' ');
-
-        let message = '';
-        message += `${pad('', 10)}${pad(team1Abbr, 8)}${pad(team2Abbr, 10)}\n`;
-        message += '----------------------------\n';
-
-        statsToCompare.forEach(stat => {
-          const t1 = team1Stats[stat] ?? '-';
-          const t2 = team2Stats[stat] ?? '-';
-          message += `${pad(stat)} | ${pad(t1)} | ${pad(t2)}\n`;
-        });
-
-        // ===== Season Results Section =====
-        message += `\nHead-to-Head:\n`;
-
-        const seasonResults = await getHeadToHeadResults(team1Abbr, team2Abbr);
-
-        if (seasonResults.length === 0) {
-          message += 'No games played between these teams this season.\n';
-        } else {
-          const record = {
-            [team1Abbr]: { W: 0, L: 0, T: 0, OTL: 0 },
-            [team2Abbr]: { W: 0, L: 0, T: 0, OTL: 0 },
-          };
-
-          seasonResults.forEach(game => {
-            const { Home, Away, HomeScore, AwayScore, OT } = game;
-            const hs = parseInt(HomeScore, 10);
-            const as = parseInt(AwayScore, 10);
-            if (isNaN(hs) || isNaN(as)) return;
-
-            if (hs === as) {
-              record[Home].T++;
-              record[Away].T++;
-            } else if (hs > as) {
-              if (OT && OT.toLowerCase().includes('ot')) record[Away].OTL++;
-              else record[Away].L++;
-              record[Home].W++;
-            } else {
-              if (OT && OT.toLowerCase().includes('ot')) record[Home].OTL++;
-              else record[Home].L++;
-              record[Away].W++;
-            }
-          });
-
-          message += `${team1Abbr}: ${record[team1Abbr].W}-${record[team1Abbr].L}-${record[team1Abbr].T}-${record[team1Abbr].OTL}\n`;
-          message += `${team2Abbr}: ${record[team2Abbr].W}-${record[team2Abbr].L}-${record[team2Abbr].T}-${record[team2Abbr].OTL}\n`;
-
-          message += `\nGame Scores:\n`;
-          seasonResults.forEach(game => {
-            message += `${game.Away} ${game.AwayScore}-${game.HomeScore} ${game.Home}\n`;
-          });
-        }
-
-        await interaction.editReply({ content: `\`\`\`\n${message}\`\`\`` });
-
-      } catch (err) {
-        console.error(err);
-        try {
-          await interaction.editReply("❌ Error generating matchup stats.");
-        } catch (_) {
-          console.log('Failed to send reply — interaction may have expired.');
-        }
+        await interaction.followUp("⚠️ Failed to generate TL;DR.");
+      } catch (e) {
+        console.error("❌ FollowUp also failed:", e);
       }
     }
-  });
+  }
+
+  // --- /matchup command ---
+  else if (interaction.commandName === "matchup") {
+    try {
+      console.log("✅ /matchup command triggered");
+
+      await interaction.deferReply();
+
+      const team1Abbr = interaction.options.getString("team1")?.toUpperCase();
+      const team2Abbr = interaction.options.getString("team2")?.toUpperCase();
+
+      if (!team1Abbr || !team2Abbr) {
+        await interaction.editReply("❌ Both teams must be provided.");
+        return;
+      }
+
+      const stats = await getTeamStats();
+      const team1Stats = stats[team1Abbr];
+      const team2Stats = stats[team2Abbr];
+
+      if (!team1Stats || !team2Stats) {
+        await interaction.editReply("❌ Stats not found for one or both teams.");
+        return;
+      }
+
+      const statsToCompare = [
+        "GP","W","L","T","OTL","PTS","W%","GF","GF/G","GA","GA/G",
+        "SH","S/G","SH%","SHA","SA/G","SD","FOW","FO","FO%",
+        "H","H/G","HA","HD","BAG","BA","BA%","1xG","1xA","1x%",
+        "PS","PSA","PS%"
+      ];
+
+      const pad = (str, len = 7) => str.toString().padEnd(len, " ");
+
+      let message = "";
+      message += `${pad("", 10)}${pad(team1Abbr, 8)}${pad(team2Abbr, 10)}\n`;
+      message += "----------------------------\n";
+
+      statsToCompare.forEach((stat) => {
+        const t1 = team1Stats[stat] ?? "-";
+        const t2 = team2Stats[stat] ?? "-";
+        message += `${pad(stat)} | ${pad(t1)} | ${pad(t2)}\n`;
+      });
+
+      // --- Head-to-Head Section ---
+      message += `\nHead-to-Head:\n`;
+      const seasonResults = await getHeadToHeadResults(team1Abbr, team2Abbr);
+
+      if (!seasonResults.length) {
+        message += "No games played between these teams this season.\n";
+      } else {
+        const record = {
+          [team1Abbr]: { W: 0, L: 0, T: 0, OTL: 0 },
+          [team2Abbr]: { W: 0, L: 0, T: 0, OTL: 0 },
+        };
+
+        seasonResults.forEach((game) => {
+          const { Home, Away, HomeScore, AwayScore, OT } = game;
+          const hs = parseInt(HomeScore, 10);
+          const as = parseInt(AwayScore, 10);
+          if (isNaN(hs) || isNaN(as)) return;
+
+          if (hs === as) {
+            record[Home].T++;
+            record[Away].T++;
+          } else if (hs > as) {
+            if (OT && OT.toLowerCase().includes("ot")) record[Away].OTL++;
+            else record[Away].L++;
+            record[Home].W++;
+          } else {
+            if (OT && OT.toLowerCase().includes("ot")) record[Home].OTL++;
+            else record[Home].L++;
+            record[Away].W++;
+          }
+        });
+
+        message += `${team1Abbr}: ${record[team1Abbr].W}-${record[team1Abbr].L}-${record[team1Abbr].T}-${record[team1Abbr].OTL}\n`;
+        message += `${team2Abbr}: ${record[team2Abbr].W}-${record[team2Abbr].L}-${record[team2Abbr].T}-${record[team2Abbr].OTL}\n`;
+
+        message += `\nGame Scores:\n`;
+        seasonResults.forEach((game) => {
+          message += `${game.Away} ${game.AwayScore}-${game.HomeScore} ${game.Home}\n`;
+        });
+      }
+
+      await interaction.editReply({ content: `\`\`\`\n${message}\`\`\`` });
+    } catch (err) {
+      console.error("❌ Error in /matchup handler:", err);
+      try {
+        await interaction.editReply("❌ Error generating matchup stats.");
+      } catch (_) {
+        console.log("Failed to send reply — interaction may have expired.");
+      }
+    }
+  }
+});
+
 
   // === Get Head-to-Head Results ===
   async function getHeadToHeadResults(team1, team2) {

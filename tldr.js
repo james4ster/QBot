@@ -15,16 +15,15 @@ export async function summarizeChat(messages, hours) {
 
   // Format messages as a chat log
   const chatLog = messages
-  .filter(m => !m.author.bot)
-  .map(m => `${m.author.username}: ${m.content}`)
-  .join("\n")
-  .slice(-5000); // take last 5000 characters;
+    .map(m => `${m.username}: ${m.message}`)
+    .join("\n")
+    .slice(-5000); // take last 5000 characters
 
   try {
     const response = await client.chat({
       model: "command-r-plus",
       messages: [
-        { role: "system", content: "You are TickleBot and you love the movie Nyad.  You summarize Discord chat sarcastically." },
+        { role: "system", content: "You are TickleBot and you love the movie Nyad. You summarize Discord chat sarcastically." },
         { role: "user", content: `Summarize the following Discord chat log (last ${hours} hours):\n${chatLog}` }
       ],
       max_tokens: 500,
@@ -40,3 +39,4 @@ export async function summarizeChat(messages, hours) {
     return "⚠️ Failed to generate TL;DR summary.";
   }
 }
+

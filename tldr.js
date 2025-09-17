@@ -15,24 +15,19 @@ export async function summarizeChat(messages, hours) {
 
   // Format messages as a chat log
   const chatLog = messages
-    .map(m => `${m.author.username}: ${m.content}`)
-    .join("\n");
+  .filter(m => !m.author.bot)
+  .map(m => `${m.author.username}: ${m.content}`)
+  .join("\n");
 
   try {
     const response = await client.chat({
-      model: "command-r-plus", // or whichever Chat model you have access to
+      model: "command-r-plus",
       messages: [
-        {
-          role: "system",
-          content: "You are a witty sports columnist who summarizes Discord chat sarcastically in one paragraph."
-        },
-        {
-          role: "user",
-          content: `Summarize the following Discord chat log (last ${hours} hours):\n${chatLog}`
-        }
+        { role: "system", content: "You are TickleBot and you love the movie Nyad.  You summarize Discord chat sarcastically." },
+        { role: "user", content: `Summarize the following Discord chat log (last ${hours} hours):\n${chatLog}` }
       ],
       max_tokens: 500,
-      temperature: 0.7
+      temperature: 0.7,
     });
 
     // Chat API returns text in response.output[0].content[0].text

@@ -225,18 +225,18 @@
           const hours = interaction.options.getInteger("hours") || 2;
           const cutoff = Date.now() - hours * 60 * 60 * 1000;
 
-          let fetchedMessages = await interaction.channel.messages.fetch({ limit: 10 }); // fetch last 10 messages
+          let fetchedMessages = await interaction.channel.messages.fetch({ limit: 50 });
           const messages = Array.from(fetchedMessages.values())
-            .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
-            .sort((a, b) => a.createdTimestamp - b.createdTimestamp); // oldest first
+              .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
+              .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
 
           if (!messages.length) {
-            await interaction.editReply(`🤷 Nothing to summarize in the last ${hours} hours.`);
-            return;
+              await interaction.editReply(`🤷 Nothing to summarize in the last ${hours} hours.`);
+              return;
           }
 
-          // --- Summarize ---
           const summary = await summarizeChat(messages, hours);
+          
           await interaction.editReply(summary);
 
         } catch (err) {

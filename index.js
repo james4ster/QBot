@@ -223,32 +223,41 @@ client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
   // --- /tldr command ---
-  if (interaction.commandName === "tldr") {
-    const hours = interaction.options.getInteger("hours") || 2;
+    if (interaction.commandName === "tldr") {
+      const hours = interaction.options.getInteger("hours") || 2;
 
-    try {
-      await interaction.deferReply();
-      console.log("✅ /tldr command triggered; fetching messages from last", hours, "hours");
+      try {
+        await interaction.deferReply();
+        console.log("✅ /tldr command triggered; fetching messages from last", hours, "hours");
 
-      const cutoff = Date.now() - hours * 60 * 60 * 1000;
-      const fetchedMessages = await interaction.channel.messages.fetch({ limit: 100 });
-      const messages = Array.from(fetchedMessages.values())
-        .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
-        .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+        const cutoff = Date.now() - hours * 60 * 60 * 1000;
+        const fetchedMessages = await interaction.channel.messages.fetch({ limit: 100 });
+        const messages = Array.from(fetchedMessages.values())
+          .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
+          .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
 
-      if (!messages.length) {
-        await interaction.editReply(`🤷 Nothing to summarize in the last ${hours} hours.`);
-        return;
+        if (!messages.length) {
+          return await interaction.editReply(`🤷 Nothing to summarize in the last ${hours} hours.`);
+        }
+
+        // Transform messages into text-only for Cohere
+        const chatPayload = messages.map(m => ({ role: "user", content: m.content }));
+
+        const summary = await summarizeChat(chatPayload, hours);
+        await interaction.editReply(summary);
+
+      } catch (err) {
+        console.error("❌ Error in /tldr handler:", err);
+
+        // Use followUp if interaction might have timed out
+        if (interaction.deferred || interaction.replied) {
+          try { await interaction.followUp("⚠️ Failed to generate TL;DR."); } catch {}
+        } else {
+          try { await interaction.reply("⚠️ Failed to generate TL;DR."); } catch {}
+        }
       }
-
-      const summary = await summarizeChat(messages, hours);
-      await interaction.editReply(summary);
-
-    } catch (err) {
-      console.error("❌ Error in /tldr handler:", err);
-      await safeReply(interaction, "⚠️ Failed to generate TL;DR.");
     }
-  }
+
 
   // --- /matchup command ---
   else if (interaction.commandName === "matchup") {

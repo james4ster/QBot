@@ -17,7 +17,8 @@ export async function summarizeChat(messages, hours) {
   const chatLog = messages
   .filter(m => !m.author.bot)
   .map(m => `${m.author.username}: ${m.content}`)
-  .join("\n");
+  .join("\n")
+  .slice(-5000); // take last 5000 characters;
 
   try {
     const response = await client.chat({

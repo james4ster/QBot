@@ -260,11 +260,14 @@ async function safeReply(interaction, content) {
                           console.log("📝 Cohere TL;DR summary:", summary);
 
                           // ✅ send it to Discord
+                          // ✅ enforce safe formatting
                           const safeSummary = summary.length > 1990
                             ? summary.slice(0, 1990) + "…"
                             : summary;
 
                           await interaction.editReply({ content: safeSummary });
+                          console.log("✅ TL;DR sent to Discord");
+
 
 
                         } catch (err) {

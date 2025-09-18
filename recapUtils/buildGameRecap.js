@@ -37,13 +37,13 @@ async function fetchScoringData(gameID) {
   return rows
     .filter(r => r[5] == gameID)
     .map(row => ({
-      period: Math.min(Number(row[7]), 3), // H = period, cap at 3
-      time: row[8],                         // I = time
-      team: row[9],                          // J = team
-      goalScorer: row[10],                   // K = scorer
-      assist1: row[11] || '',                // L = assist 1
-      assist2: row[12] || '',                // M = assist 2
-      type: row[13] || 'EV',                 // N = type
+      period: Math.min(Number(row[7]), 3),
+      time: row[8],
+      team: row[9],
+      goalScorer: row[10],
+      assist1: row[11] || '',
+      assist2: row[12] || '',
+      type: row[13] || 'EV',
     }));
 }
 
@@ -57,11 +57,11 @@ async function fetchPlayerData(gameID) {
   const goalies = [];
 
   rows.filter(r => r[5] == gameID).forEach(r => {
-    const name = r[7];      // H = player name
-    const pos = r[8];       // I = position
-    const goals = Number(r[9]); // J = goals
-    const ga = Number(r[13]);   // N = goals against
-    const sv = Number(r[14]);   // O = saves
+    const name = r[7];
+    const pos = r[8];
+    const goals = Number(r[9]);
+    const ga = Number(r[13]);
+    const sv = Number(r[14]);
 
     if (pos === 'G') {
       goalies.push(
@@ -96,11 +96,17 @@ export async function buildRecapForRow(gameRow = 2) {
 
   const { playerGoals, goalies } = await fetchPlayerData(gameDataRaw.gameID);
 
-  // Only keep first 5 highlights for brevity
-  const highlights = scoringRows.slice(0, 5).map((s, idx) => {
-    const assistText = s.assist1 ? `, assisted by ${s.assist1}` : '';
-    return `${idx + 1}. ${s.team} goal by ${s.goalScorer}${assistText} (Period ${s.period}, ${s.time})`;
-  });
+  // --- Inline helper for highlights ---
+  const generateHighlights = (rows) => {
+    return rows.slice(0, 5).map((row, idx) => {
+      let assistText = '';
+      if (row.assist1 && row.assist2) assistText = `, assisted by ${row.assist1} & ${row.assist2}`;
+      else if (row.assist1) assistText = `, assisted by ${row.assist1}`;
+      return `${idx + 1}. ${row.team} goal by ${row.goalScorer}${assistText} (Period ${row.period}, ${row.time})`;
+    });
+  };
+
+  const highlights = generateHighlights(scoringRows);
 
   const tieText =
     gameData.homeScore === gameData.awayScore

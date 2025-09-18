@@ -12,10 +12,10 @@ export async function summarizeChat(messages, hours) {
 
   const safeMessages = messages
     .filter(m => m && typeof m.content === "string" && m.content.trim())
-  .map(m => ({
-    username: m.member?.nick || m.author?.globalName || m.author?.username || "Unknown",
-    content: m.content.trim(),
-  }));
+    .map(m => ({
+      displayName: m.member?.nickname || m.author?.globalName || m.author?.username || "Unknown",
+      content: m.content.trim(),
+    }));
 
   if (!safeMessages.length) {
     return "🤷 No valid messages to summarize.";
@@ -24,9 +24,10 @@ export async function summarizeChat(messages, hours) {
   console.log(`➡️ summarizeChat called with ${safeMessages.length} messages; cutoff (hours): ${hours}`);
 
   const chatLog = safeMessages
-    .map(m => `${m.username}: ${m.content}`)
+    .map(m => `${m.displayName}: ${m.content}`)
     .join("\n")
     .slice(-5000);
+
 
   try {
     const response = await client.chat({

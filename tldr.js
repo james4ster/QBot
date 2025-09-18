@@ -31,7 +31,12 @@ export async function summarizeChat(messages, hours) {
   try {
     const response = await client.chat({
       model: "command-xlarge-nightly",
-      message: `Summarize the last ${hours} hours of Discord messages in a sarcastic TL;DR style, mentioning usernames where appropriate:\n${chatLog}`,
+      message: `Write a sarcastic TL;DR of the last ${hours} hours of Discord chat. 
+      1. Roast the overall vibe of the conversation. 
+      2. Call out usernames for being quirky and petty. 
+      3. Don't mention TLDR in the response.
+      4. Be concise and funny.
+      Messages:\n${chatLog}`,
       temperature: 0.8,
       max_tokens: 400,
     });

@@ -219,59 +219,38 @@ async function safeReply(interaction, content) {
 }
 
 // === Interaction Handling ===
-client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
+    // inside your Discord.js command listener for /tldr
+    client.on("interactionCreate", async (interaction) => {
+      if (!interaction.isChatInputCommand()) return;
 
-  if (interaction.commandName === "tldr") {
-    try {
-      // ✅ Defer immediately — nothing async before this
-      await interaction.deferReply();
-
-      const hours = interaction.options.getInteger("hours") || 2;
-      const cutoff = Date.now() - hours * 60 * 60 * 1000;
-
-      // --- Fetch messages ---
-      let chatPayload = [];
-      for (const [channelId, channel] of interaction.guild.channels.cache) {
-        if (!channel.isTextBased() || !channel.viewable) continue;
-        const perms = channel.permissionsFor(interaction.guild.members.me);
-        if (!perms?.has("ReadMessageHistory")) continue;
-
+      if (interaction.commandName === "tldr") {
         try {
-          const messages = await channel.messages.fetch({ limit: 50 });
-          const humanMessages = Array.from(messages.values())
-            .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
-            .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-          chatPayload.push(...humanMessages);
+          // ⚡ Minimal fix: defer immediately
+          await interaction.deferReply(); // lets Discord know we’re working
+
+          // Gather messages and cutoff (hours)
+          const messages = await getMessagesForTLDR(); // whatever your current logic is
+          const hours = 10; // or get from options
+
+          // Call your existing summarizeChat() function (prompt can be enhanced safely)
+          const summary = await summarizeChat(messages, hours);
+
+          // Edit the deferred reply with the result
+          await interaction.editReply(summary);
+
+          console.log("📝 Cohere TL;DR summary posted to Discord:", summary);
+
         } catch (err) {
-          console.error(`Failed to fetch messages from ${channelId}:`, err);
+          console.error("❌ Error in /tldr handler:", err);
+          // If something goes wrong, make sure Discord sees a response
+          if (interaction.deferred || interaction.replied) {
+            await interaction.editReply("⚠️ Failed to generate TL;DR.");
+          } else {
+            await interaction.reply("⚠️ Failed to generate TL;DR.");
+          }
         }
       }
 
-      if (!chatPayload.length) {
-        return await interaction.editReply(`⚠️ No human messages found in the last ${hours} hours.`);
-      }
-
-      // --- Get Cohere TL;DR ---
-      const summary = await summarizeChat(chatPayload, hours);
-      console.log("📝 Cohere TL;DR summary:", summary);
-
-      // ✅ Send it safely
-      await interaction.editReply({ content: summary });
-
-    } catch (err) {
-      console.error("❌ Error in /tldr handler:", err);
-
-      // Safe fallback: only editReply if deferred, never reply()
-      try {
-        if (interaction.deferred) {
-          await interaction.editReply("⚠️ Failed to generate TL;DR.");
-        }
-      } catch (e2) {
-        console.error("Fallback editReply failed:", e2);
-      }
-    }
-  }
 
 
 

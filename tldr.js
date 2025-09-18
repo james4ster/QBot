@@ -12,10 +12,10 @@ export async function summarizeChat(messages, hours) {
 
   const safeMessages = messages
     .filter(m => m && typeof m.content === "string" && m.content.trim())
-    .map(m => ({
-      username: m.author?.username || "Unknown",
-      content: m.content.trim(),
-    }));
+  .map(m => ({
+    username: m.member?.nick || m.author?.globalName || m.author?.username || "Unknown",
+    content: m.content.trim(),
+  }));
 
   if (!safeMessages.length) {
     return "🤷 No valid messages to summarize.";
@@ -32,7 +32,7 @@ export async function summarizeChat(messages, hours) {
     const response = await client.chat({
       model: "command-xlarge-nightly",
       message: `Write a sarcastic but factual TL;DR of the last ${hours} hours of Discord chat. 
-      1. Keep it factual 
+      1. Keep it factual; Do not make up information. 
       2. Roast the overall vibe of the conversation. 
       3. Call out usernames in **username** (with bold asterisks). 
       4. Don't mention TLDR in the response.

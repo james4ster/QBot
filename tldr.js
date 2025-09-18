@@ -27,23 +27,13 @@ export async function summarizeChat(messages, hours) {
   const chatLog = safeMessages
     .map(m => `${m.username}: ${m.content}`)
     .join("\n")
-    .slice(-5000);  // keep the last 5000 chars or so
+    .slice(-5000); // keep last 5000 chars
 
   try {
     const response = await client.chat({
       model: "command-xlarge-nightly",
-      message: `
-    Summarize the last ${hours} hours of Discord messages in a **sarcastic, funny TL;DR style**.
-    - Mention each poster by name where relevant (bold the usernames).
-    - Include short quotes or paraphrases if they said something notable.
-    - Add a sarcastic one-liner at the end summing up the chaos.
-    - Optionally include an imaginary GIF description if it fits the tone.
-    - Keep it concise, readable, and dripping with humor.
-
-    Messages:
-    ${chatLog}
-    `,
-      temperature: 0.85,
+      message: `Summarize the last ${hours} hours of Discord messages in a sarcastic TL;DR style:\n${chatLog}`,
+      temperature: 0.8,
       max_tokens: 400,
     });
 

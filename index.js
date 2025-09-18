@@ -220,36 +220,30 @@ async function safeReply(interaction, content) {
 
 // === Interaction Handling ===
     // inside your Discord.js command listener for /tldr
-    client.on("interactionCreate", async (interaction) => {
-      if (!interaction.isChatInputCommand()) return;
+        client.on("interactionCreate", async (interaction) => {
+          if (!interaction.isChatInputCommand()) return;
 
-      if (interaction.commandName === "tldr") {
-        try {
-          // ⚡ Minimal fix: defer immediately
-          await interaction.deferReply(); // lets Discord know we’re working
+          if (interaction.commandName === "tldr") {
+            try {
+              // Defer reply to avoid Discord timeout
+              await interaction.deferReply();
 
-          // Gather messages and cutoff (hours)
-          const messages = await getMessagesForTLDR(); // whatever your current logic is
-          const hours = 10; // or get from options
+              // Fetch messages for the last N hours (your existing logic)
+              const messages = await getMessagesForTLDR(); // your function
+              const hours = 10; // example cutoff
 
-          // Call your existing summarizeChat() function (prompt can be enhanced safely)
-          const summary = await summarizeChat(messages, hours);
+              // Get the summary from Cohere
+              const summary = await summarizeChat(messages, hours);
 
-          // Edit the deferred reply with the result
-          await interaction.editReply(summary);
-
-          console.log("📝 Cohere TL;DR summary posted to Discord:", summary);
-
-        } catch (err) {
-          console.error("❌ Error in /tldr handler:", err);
-          // If something goes wrong, make sure Discord sees a response
-          if (interaction.deferred || interaction.replied) {
-            await interaction.editReply("⚠️ Failed to generate TL;DR.");
-          } else {
-            await interaction.reply("⚠️ Failed to generate TL;DR.");
+              // Edit the deferred reply with the TL;DR
+              await interaction.editReply(summary);
+            } catch (err) {
+              console.error("❌ Error in /tldr handler:", err);
+              if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply("⚠️ Something went wrong generating the TL;DR.");
+              }
+            }
           }
-        }
-      }
 
 
 

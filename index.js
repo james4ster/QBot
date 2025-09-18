@@ -79,8 +79,9 @@ client.on("messageCreate", async (message) => {
   const isBotBoxScore = message.author.bot && message.channelId === process.env.BOX_SCORE_CHANNEL_ID;
   if (message.author.bot && !isBotBoxScore) return;
 
-  console.log("📩 Message handler fired! PID:", process.pid, "Listener count:", client.listenerCount("messageCreate"));
-  console.log(`📩 Message received: id=${message.id}, author=${message.author.username}, bot=${message.author.bot}`);
+ // Debug messages for phrase handler === commenting out now that it's working 
+ // console.log("📩 Message handler fired! PID:", process.pid, "Listener count:", client.listenerCount("messageCreate"));
+ // console.log(`📩 Message received: id=${message.id}, author=${message.author.username}, bot=${message.author.bot}`);
 
   // --- BOX SCORE CHANNEL HANDLER ---
   if (message.channelId === process.env.BOX_SCORE_CHANNEL_ID) {
@@ -122,7 +123,7 @@ client.on("messageCreate", async (message) => {
   if (!message.content || typeof message.content !== 'string' || !message.content.trim()) return;
 
   const normalizedContent = message.content.trim().toLowerCase();
-  console.log(`💬 Message content (normalized): "${normalizedContent}"`);
+      //console.log(`💬 Message content (normalized): "${normalizedContent}"`);
 
   let matched = false;
 
@@ -156,8 +157,8 @@ client.on("messageCreate", async (message) => {
 
     if (matched) break;
   }
-
-  if (!matched) console.log('❌ No phrase matched this message.');
+ 
+ // if (!matched) console.log('❌ No phrase matched this message.');
 });
 
 // === Helper to escape regex - needed for phrase matching ===

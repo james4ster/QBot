@@ -223,10 +223,9 @@ async function safeReply(interaction, content) {
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  // ----- TL;DR COMMAND -----
-  if (interaction.commandName === "tldr") {
-    try {
-      // ✅ Immediately acknowledge
+  try {
+    // ===== TL;DR COMMAND =====
+    if (interaction.commandName === "tldr") {
       await interaction.deferReply();
 
       const hours = interaction.options.getInteger("hours") || 2;
@@ -259,30 +258,20 @@ client.on("interactionCreate", async (interaction) => {
         return;
       }
 
-      // --- summarize ---
       const summary = await summarizeChat(chatPayload, hours);
       console.log("📝 Cohere TL;DR summary:", summary);
 
-      // Truncate if too long
-      const safeSummary = summary.length > 1990 ? summary.slice(0, 1990) + "…" : summary;
+      const safeSummary = summary.length > 1990
+        ? summary.slice(0, 1990) + "…"
+        : summary;
+
       await interaction.editReply({ content: safeSummary });
       console.log("✅ TL;DR sent to Discord");
-
-    } catch (err) {
-      console.error("❌ TL;DR command failed:", err);
-      try {
-        if (interaction.deferred || interaction.replied) {
-          await interaction.editReply("⚠️ Failed to generate TL;DR.");
-        }
-      } catch (e2) {
-        console.error("❌ Fallback editReply failed:", e2);
-      }
     }
-  }
 
-  // ----- MATCHUP COMMAND -----
-  else if (interaction.commandName === "matchup") {
-    try {
+    // ===== MATCHUP COMMAND =====
+    else if (interaction.commandName === "matchup") {
+      console.log("✅ /matchup command triggered");
       await interaction.deferReply();
 
       const team1Abbr = interaction.options.getString("team1")?.toUpperCase();
@@ -362,19 +351,13 @@ client.on("interactionCreate", async (interaction) => {
 
       await interaction.editReply({ content: `\`\`\`\n${message}\`\`\`` });
       console.log("✅ /matchup sent to Discord");
-
-    } catch (err) {
-      console.error("❌ /matchup command failed:", err);
-      try {
-        if (interaction.deferred || interaction.replied) {
-          await interaction.editReply("❌ Error processing matchup.");
-        }
-      } catch (e2) {
-        console.error("❌ Fallback editReply failed:", e2);
-      }
     }
+
+  } catch (err) {
+    console.error("❌ Error handling interaction:", err);
   }
 });
+
 
 
 

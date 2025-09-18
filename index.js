@@ -219,52 +219,68 @@ async function safeReply(interaction, content) {
 }
 
 // === Interaction Handling ===
-client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
+      client.on("interactionCreate", async (interaction) => {
+        if (!interaction.isChatInputCommand()) return;
 
-  try {
-    // ===== TL;DR COMMAND =====
-    if (interaction.commandName === "tldr") {
-      await interaction.deferReply();
-
-      const hours = interaction.options.getInteger("hours") || 2;
-      const cutoff = Date.now() - hours * 60 * 60 * 1000;
-
-      const channels = interaction.guild.channels.cache.filter(
-        c => c.isTextBased() && c.viewable &&
-             c.permissionsFor(interaction.guild.members.me)?.has("ReadMessageHistory")
-      );
-
-      const messagesArrays = await Promise.all(
-        channels.map(async (channel) => {
+        if (interaction.commandName === "tldr") {
           try {
-            const msgs = await channel.messages.fetch({ limit: 50 });
-            return Array.from(msgs.values())
-              .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
-              .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+            // ✅ Defer immediately to acknowledge the interaction
+            await interaction.deferReply();
+
+            const hours = interaction.options.getInteger("hours") || 2;
+            const cutoff = Date.now() - hours * 60 * 60 * 1000;
+
+            // --- fetch messages safely ---
+            const channels = interaction.guild.channels.cache.filter(
+              c => c.isTextBased() &&
+                   c.viewable &&
+                   c.permissionsFor(interaction.guild.members.me)?.has("ReadMessageHistory")
+            );
+
+            // Limit concurrency per channel to avoid hanging
+            const messagesArrays = [];
+            for (const channel of channels.values()) {
+              try {
+                const msgs = await channel.messages.fetch({ limit: 50 });
+                const filtered = Array.from(msgs.values())
+                  .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
+                  .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+                messagesArrays.push(filtered);
+              } catch (err) {
+                console.error(`Failed to fetch messages from ${channel.id}:`, err);
+              }
+            }
+
+            const chatPayload = messagesArrays.flat();
+
+            if (!chatPayload.length) {
+              return await interaction.editReply(`⚠️ No human messages found in the last ${hours} hours.`);
+            }
+
+            // --- summarize ---
+            const summary = await summarizeChat(chatPayload, hours);
+            console.log("📝 Cohere TL;DR summary:", summary);
+
+            // Truncate if too long
+            const safeSummary = summary.length > 1990
+              ? summary.slice(0, 1990) + "…"
+              : summary;
+
+            await interaction.editReply({ content: safeSummary });
+            console.log("✅ TL;DR sent to Discord");
+
           } catch (err) {
-            console.error(`Failed to fetch messages from ${channel.id}:`, err);
-            return [];
+            console.error("❌ Error in /tldr handler:", err);
+            try {
+              // Fallback: editReply if deferred
+              if (interaction.deferred || interaction.replied) {
+                await interaction.editReply("⚠️ Failed to generate TL;DR.");
+              }
+            } catch (e2) {
+              console.error("Fallback editReply failed:", e2);
+            }
           }
-        })
-      );
-
-      const chatPayload = messagesArrays.flat();
-
-      if (!chatPayload.length) {
-        await interaction.editReply(`⚠️ No human messages found in the last ${hours} hours.`);
-        return;
-      }
-
-      const summary = await summarizeChat(chatPayload, hours);
-      console.log("📝 Cohere TL;DR summary:", summary);
-
-      const safeSummary = summary.length > 1990 ? summary.slice(0, 1990) + "…" : summary;
-      await interaction.editReply({ content: safeSummary });
-      console.log("✅ TL;DR sent to Discord");
-
-      return; // <-- ensure we exit here
-    }
+        }
 
     // ===== MATCHUP COMMAND =====
     else if (interaction.commandName === "matchup") {

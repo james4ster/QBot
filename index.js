@@ -219,72 +219,70 @@ async function safeReply(interaction, content) {
 }
 
 // === Interaction Handling ===
-      client.on("interactionCreate", async (interaction) => {
-        if (!interaction.isChatInputCommand()) return;
+// === Interaction Handling ===
+client.on("interactionCreate", async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
 
-        if (interaction.commandName === "tldr") {
-          try {
-            // ✅ Defer immediately to acknowledge the interaction
-            await interaction.deferReply();
+  // ----- TL;DR COMMAND -----
+  if (interaction.commandName === "tldr") {
+    try {
+      // ✅ Immediately acknowledge
+      await interaction.deferReply();
 
-            const hours = interaction.options.getInteger("hours") || 2;
-            const cutoff = Date.now() - hours * 60 * 60 * 1000;
+      const hours = interaction.options.getInteger("hours") || 2;
+      const cutoff = Date.now() - hours * 60 * 60 * 1000;
 
-            // --- fetch messages safely ---
-            const channels = interaction.guild.channels.cache.filter(
-              c => c.isTextBased() &&
-                   c.viewable &&
-                   c.permissionsFor(interaction.guild.members.me)?.has("ReadMessageHistory")
-            );
+      // --- fetch messages safely ---
+      const channels = interaction.guild.channels.cache.filter(
+        c => c.isTextBased() &&
+             c.viewable &&
+             c.permissionsFor(interaction.guild.members.me)?.has("ReadMessageHistory")
+      );
 
-            // Limit concurrency per channel to avoid hanging
-            const messagesArrays = [];
-            for (const channel of channels.values()) {
-              try {
-                const msgs = await channel.messages.fetch({ limit: 50 });
-                const filtered = Array.from(msgs.values())
-                  .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
-                  .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-                messagesArrays.push(filtered);
-              } catch (err) {
-                console.error(`Failed to fetch messages from ${channel.id}:`, err);
-              }
-            }
-
-            const chatPayload = messagesArrays.flat();
-
-            if (!chatPayload.length) {
-              return await interaction.editReply(`⚠️ No human messages found in the last ${hours} hours.`);
-            }
-
-            // --- summarize ---
-            const summary = await summarizeChat(chatPayload, hours);
-            console.log("📝 Cohere TL;DR summary:", summary);
-
-            // Truncate if too long
-            const safeSummary = summary.length > 1990
-              ? summary.slice(0, 1990) + "…"
-              : summary;
-
-            await interaction.editReply({ content: safeSummary });
-            console.log("✅ TL;DR sent to Discord");
-
-          } catch (err) {
-            console.error("❌ Error in /tldr handler:", err);
-            try {
-              // Fallback: editReply if deferred
-              if (interaction.deferred || interaction.replied) {
-                await interaction.editReply("⚠️ Failed to generate TL;DR.");
-              }
-            } catch (e2) {
-              console.error("Fallback editReply failed:", e2);
-            }
-          }
+      const messagesArrays = [];
+      for (const channel of channels.values()) {
+        try {
+          const msgs = await channel.messages.fetch({ limit: 50 });
+          const filtered = Array.from(msgs.values())
+            .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
+            .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+          messagesArrays.push(filtered);
+        } catch (err) {
+          console.error(`Failed to fetch messages from ${channel.id}:`, err);
         }
+      }
 
-    // ===== MATCHUP COMMAND =====
-    else if (interaction.commandName === "matchup") {
-      console.log("✅ /matchup command triggered");
+      const chatPayload = messagesArrays.flat();
+
+      if (!chatPayload.length) {
+        await interaction.editReply(`⚠️ No human messages found in the last ${hours} hours.`);
+        return;
+      }
+
+      // --- summarize ---
+      const summary = await summarizeChat(chatPayload, hours);
+      console.log("📝 Cohere TL;DR summary:", summary);
+
+      // Truncate if too long
+      const safeSummary = summary.length > 1990 ? summary.slice(0, 1990) + "…" : summary;
+      await interaction.editReply({ content: safeSummary });
+      console.log("✅ TL;DR sent to Discord");
+
+    } catch (err) {
+      console.error("❌ TL;DR command failed:", err);
+      try {
+        if (interaction.deferred || interaction.replied) {
+          await interaction.editReply("⚠️ Failed to generate TL;DR.");
+        }
+      } catch (e2) {
+        console.error("❌ Fallback editReply failed:", e2);
+      }
+    }
+  }
+
+  // ----- MATCHUP COMMAND -----
+  else if (interaction.commandName === "matchup") {
+    try {
       await interaction.deferReply();
 
       const team1Abbr = interaction.options.getString("team1")?.toUpperCase();
@@ -363,12 +361,21 @@ async function safeReply(interaction, content) {
       }
 
       await interaction.editReply({ content: `\`\`\`\n${message}\`\`\`` });
+      console.log("✅ /matchup sent to Discord");
+
+    } catch (err) {
+      console.error("❌ /matchup command failed:", err);
+      try {
+        if (interaction.deferred || interaction.replied) {
+          await interaction.editReply("❌ Error processing matchup.");
+        }
+      } catch (e2) {
+        console.error("❌ Fallback editReply failed:", e2);
+      }
     }
-  } catch (err) {
-    console.error("❌ Error handling interaction:", err);
-    await safeReply(interaction, "❌ Error processing this command.");
   }
 });
+
 
 
 // === Get Head-to-Head Results ===

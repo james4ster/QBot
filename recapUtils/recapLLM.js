@@ -75,7 +75,7 @@ ${extraText}
   
   try {
     const response = await client.chat({
-      model: "command-r-plus",
+      model: "command-xlarge-nightly",
       message: prompt,
       temperature: 0.9,
       max_tokens: 400,

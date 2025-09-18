@@ -285,7 +285,7 @@ async function safeReply(interaction, content) {
 
 
   // --- /matchup command ---
-  else if (interaction.commandName === "matchup") {
+  if (interaction.commandName === "matchup") {
     try {
       console.log("✅ /matchup command triggered");
       await interaction.deferReply();

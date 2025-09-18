@@ -222,60 +222,60 @@ async function safeReply(interaction, content) {
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  if (interaction.commandName === "tldr") {
-    try {
-      // ✅ 1. Defer immediately
-      await interaction.deferReply();
+    // === /tldr handler ===
+    if (interaction.commandName === "tldr") {
+      try {
+        // ✅ Immediately defer
+        await interaction.deferReply();
 
-      const hours = interaction.options.getInteger("hours") || 2;
-      const cutoff = Date.now() - hours * 60 * 60 * 1000;
+        const hours = interaction.options.getInteger("hours") || 2;
+        const cutoff = Date.now() - hours * 60 * 60 * 1000;
 
-      // ✅ 2. Gather messages
-      let chatPayload = [];
-      for (const [channelId, channel] of interaction.guild.channels.cache) {
-        if (!channel.isTextBased() || !channel.viewable) continue;
-        const perms = channel.permissionsFor(interaction.guild.members.me);
-        if (!perms?.has("ReadMessageHistory")) continue;
+        // ✅ Gather messages
+        let chatPayload = [];
+        for (const [channelId, channel] of interaction.guild.channels.cache) {
+          if (!channel.isTextBased() || !channel.viewable) continue;
+          const perms = channel.permissionsFor(interaction.guild.members.me);
+          if (!perms?.has("ReadMessageHistory")) continue;
 
-        try {
-          const messages = await channel.messages.fetch({ limit: 50 });
-          const humanMessages = Array.from(messages.values())
-            .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
-            .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-          chatPayload.push(...humanMessages);
-        } catch (err) {
-          console.error(`Failed to fetch messages from ${channelId}:`, err);
+          try {
+            const messages = await channel.messages.fetch({ limit: 50 });
+            const humanMessages = Array.from(messages.values())
+              .filter(m => !m.author.bot && m.createdTimestamp >= cutoff)
+              .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+            chatPayload.push(...humanMessages);
+          } catch (err) {
+            console.error(`Failed to fetch messages from ${channelId}:`, err);
+          }
         }
-      }
 
-      if (!chatPayload.length) {
-        await interaction.editReply(`⚠️ No human messages found in the last ${hours} hours.`);
-        return;
-      }
+        if (!chatPayload.length) {
+          // ✅ Only use editReply after defer
+          await interaction.editReply(`⚠️ No human messages found in the last ${hours} hours.`);
+          return;
+        }
 
-      // ✅ 3. Generate summary using tldr.js
-      const summary = await summarizeChat(chatPayload, hours);
+        // ✅ Generate TL;DR
+        const summary = await summarizeChat(chatPayload, hours);
 
-      // ✅ 4. Log summary for debugging
-      console.log("📝 Cohere TL;DR summary:", summary);
+        // ✅ Log summary
+        console.log("📝 Cohere TL;DR summary:", summary);
 
-      // ✅ 5. Edit the deferred reply once
-      await interaction.editReply(summary);
+        // ✅ Send it back safely
+        await interaction.editReply(summary);
 
-    } catch (err) {
-      console.error("❌ Error in /tldr handler:", err);
-      if (!interaction.deferred) {
-        try {
-          await interaction.reply("⚠️ Failed to generate TL;DR.");
-        } catch (e2) {
-          console.error("Fallback reply also failed:", e2);
+      } catch (err) {
+        console.error("❌ Error in /tldr handler:", err);
+        // Only attempt a reply if we haven't deferred (safety)
+        if (!interaction.deferred) {
+          try {
+            await interaction.reply("⚠️ Failed to generate TL;DR.");
+          } catch (e2) {
+            console.error("Fallback reply also failed:", e2);
+          }
         }
       }
     }
-  }
-
-
-
 
 
   // --- /matchup command ---

@@ -219,33 +219,24 @@ async function safeReply(interaction, content) {
 }
 
 // === Interaction Handling ===
-    // inside your Discord.js command listener for /tldr
-        client.on("interactionCreate", async (interaction) => {
-          if (!interaction.isChatInputCommand()) return;
-
-          if (interaction.commandName === "tldr") {
-            try {
-              // Defer reply to avoid Discord timeout
-              await interaction.deferReply();
-
-              // Fetch messages for the last N hours (your existing logic)
-              const messages = await getMessagesForTLDR(); // your function
-              const hours = 10; // example cutoff
-
-              // Get the summary from Cohere
-              const summary = await summarizeChat(messages, hours);
-
-              // Edit the deferred reply with the TL;DR
-              await interaction.editReply(summary);
-            } catch (err) {
-              console.error("❌ Error in /tldr handler:", err);
-              if (!interaction.replied && !interaction.deferred) {
-                await interaction.reply("⚠️ Something went wrong generating the TL;DR.");
+            client.on("interactionCreate", async interaction => {
+              if (!interaction.isChatInputCommand()) return;
+              if (interaction.commandName === "tldr") {
+                try {
+                  await interaction.deferReply(); // ✅ acknowledge once
+                  const messages = await fetchMessagesFromChannel(interaction.channel); // your existing function
+                  const hours = 10; // or however you want to pass this
+                  const summary = await summarizeChat(messages, hours);
+                  await interaction.editReply(summary); // ✅ send to Discord
+                } catch (err) {
+                  console.error("❌ Error in /tldr handler:", err);
+                  if (interaction.replied || interaction.deferred) {
+                    await interaction.editReply("⚠️ Failed to generate TL;DR.");
+                  } else {
+                    await interaction.reply("⚠️ Failed to generate TL;DR.");
+                  }
+                }
               }
-            }
-          }
-
-
 
 
   // --- /matchup command ---

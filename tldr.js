@@ -1,4 +1,3 @@
-// tldr.js
 import { CohereClient } from "cohere-ai";
 
 const client = new CohereClient({
@@ -27,12 +26,12 @@ export async function summarizeChat(messages, hours) {
   const chatLog = safeMessages
     .map(m => `${m.username}: ${m.content}`)
     .join("\n")
-    .slice(-5000); // keep last 5000 chars
+    .slice(-5000);
 
   try {
     const response = await client.chat({
       model: "command-xlarge-nightly",
-      message: `Summarize the last ${hours} hours of Discord messages in a sarcastic TL;DR style:\n${chatLog}`,
+      message: `Summarize the last ${hours} hours of Discord messages in a sarcastic TL;DR style, mentioning usernames where appropriate:\n${chatLog}`,
       temperature: 0.8,
       max_tokens: 400,
     });

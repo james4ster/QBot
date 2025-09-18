@@ -13,12 +13,15 @@ const teamPersonalities = {
   "Chicago Trash Pandas": "loves fall out boy and taylor swift",
   "Coruscant Imperials": "loves star wars and is the nicest guy in the league",
   "Down Bees": "plays effeminate with patented \"down vagina\"  shot",
+  "Ellicott City Hockey Club": "coach maryland mike is very smug and always sober",   // LOGO MISSING
+  "Graceland Kings": "very easily offended",
   "House Stark of Winterfell": "mention the movie nyad",
-  "Montly Crue": "most likable guy from Quitadelphia",
+  "Irvine Elephant Riders": "practices hard but still always loses",                 // LOGO MISSING
+  "Montley Crue": "most likable guy from Quitadelphia",
   "Naked City Junkies": "sleeps outside on the patio",
   "Superior Coasters": "cheats constantly",
-  "The Q Q*Berts": "locks keys in car",
-  "Troy Hill Cookiepuss": "the one everyone loves but chokes in the playoffs",
+  "The Q Q*Berts": "loves big lebowski and he locks keys in car",
+  "Troy Hill Cookiepuss": "loves beer and weed but chokes in the playoffs",
   "Valley Forge Free Masons": "never plays his league games; usually playing Hellraisers"
 };
 

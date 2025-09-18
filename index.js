@@ -172,7 +172,7 @@ const commands = [
     description: 'Compare two team stats',
     options: [
       { name: 'team1', description: 'First team abbreviation (e.g., SUP, BNX)', type: 3, required: true },
-      { name: 'team2', description: 'Second team abbreviation (e.g., THS, NCJ)', type: 3, required: true },
+      { name: 'team2', description: 'Second team abbreviation (e.g., BRW, NCJ)', type: 3, required: true },
     ],
   },
 ];
@@ -181,7 +181,7 @@ const commands = [
 const tldrCommand = [
   new SlashCommandBuilder()
     .setName('tldr')
-    .setDescription('Ask Ticklebot to TLDR the last X hours of chatter')
+    .setDescription('Ask Ticklebot to TLDR the last X hours of Discord chatter')
     .addIntegerOption(option =>
       option.setName('hours')
         .setDescription('Number of hours')

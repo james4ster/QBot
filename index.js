@@ -260,7 +260,12 @@ async function safeReply(interaction, content) {
                           console.log("📝 Cohere TL;DR summary:", summary);
 
                           // ✅ send it to Discord
-                          await interaction.editReply(summary);
+                          const safeSummary = summary.length > 1990
+                            ? summary.slice(0, 1990) + "…"
+                            : summary;
+
+                          await interaction.editReply({ content: safeSummary });
+
 
                         } catch (err) {
                           console.error("❌ Error in /tldr handler:", err);

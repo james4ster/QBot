@@ -44,6 +44,8 @@ async function overlayRecapElements(templatePath, boxScorePath, homeLogoPath, aw
   const AWAY_LOGO_SLOT = { top: 343, left: 310 };
 
   const boxMeta = await sharp(boxScorePath).metadata();
+  
+  /* trying to sharpen box score image
   const resizedBox = await sharp(boxScorePath)
     .resize({
       width: boxMeta.width > BOX_SLOT.width ? BOX_SLOT.width : undefined,
@@ -51,7 +53,18 @@ async function overlayRecapElements(templatePath, boxScorePath, homeLogoPath, aw
       fit: 'inside',
     })
     .toBuffer();
+  */
 
+  const resizedBox = await sharp(boxScorePath)
+  .resize({
+    width: BOX_SLOT.width,
+    height: BOX_SLOT.height,
+    fit: 'inside',
+    kernel: sharp.kernel.nearest // <-- crisp downscaling for text/images
+  })
+  .sharpen() // optional: adds a bit of edge definition
+  .toBuffer();
+  
   const homeLogoResized = await sharp(homeLogoPath)
     .resize({ width: 60, height: 60, fit: 'inside' })
     .toBuffer();

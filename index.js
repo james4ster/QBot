@@ -253,7 +253,7 @@ client.on("interactionCreate", async (interaction) => {
       const chatPayload = messagesArrays.flat();
 
       if (!chatPayload.length) {
-        await interaction.editReply(`⚠️ No human messages found in the last ${hours} hours.`);
+        await interaction.editReply(`⚠️ This league sucks...nobody said shit over the last ${hours} hours.`);
         return;
       }
 

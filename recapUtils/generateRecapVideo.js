@@ -164,7 +164,7 @@ export async function sendVideoToDiscord(localPath, client, channelId) {
     if (!channel) throw new Error('Could not find channel to send video');
 
     const file = new AttachmentBuilder(localPath);
-    await channel.send({ content: '🎬 Schedule Czar Highlights Ready!', files: [file] });
+    await channel.send({ content: '🎬 Schedule Czar Highlight Video', files: [file] });
     console.log(`✅ Sent video ${localPath} to Discord`);
   } catch (err) {
     console.error('❌ Failed to send video to Discord:', err);

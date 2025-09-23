@@ -60,10 +60,11 @@ async function overlayRecapElements(templatePath, boxScorePath, homeLogoPath, aw
     width: BOX_SLOT.width,
     height: BOX_SLOT.height,
     fit: 'inside',
-    kernel: sharp.kernel.nearest // <-- crisp downscaling for text/images
+    kernel: sharp.kernel.lanczos3 // smoother downscaling for small text/images
   })
-  .sharpen() // optional: adds a bit of edge definition
+  .png({ quality: 100, compressionLevel: 0 }) // minimal compression for clarity
   .toBuffer();
+
   
   const homeLogoResized = await sharp(homeLogoPath)
     .resize({ width: 60, height: 60, fit: 'inside' })

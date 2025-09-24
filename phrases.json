@@ -4,7 +4,7 @@
     "response": "🐺 I agree ~ wanna watch Nyad with me?"
   },
   {
-    "triggers    ": ["penalties"],
+    "triggers": ["penalties"],
     "response": "🐺 Enough with the penalties."
   },
   {
@@ -34,5 +34,9 @@
   {
     "triggers": ["wheel"],
     "response": "🐺 I can spin it after Nyad"
+  },
+  {
+    "triggers": ["down b", "down bees", "down bee"],
+    "response": "🐺 My name is Ed and I down vagina too.  Wanna listen to Pearl Jam and tickle each other?"
   }
 ]

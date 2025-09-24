@@ -38,5 +38,9 @@
   {
     "triggers": ["down b", "down bees", "down bee"],
     "response": "🐺 My name is Ed and I down vagina too.  Wanna listen to Pearl Jam and tickle each other?"
+  },
+  {
+    "triggers": ["when is the season over", "when's the season over", "when does the season end", "when is the last day of the season", "when do the playoffs start"],
+    "response": "🐺 The season ends {{seasonEnd}} -- lol"
   }
 ]

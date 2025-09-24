@@ -71,6 +71,16 @@ client.once(Events.ClientReady, () => {
   console.log(`🤖 Logged in as ${client.user.tag}!`);
 });
 
+// === Get single value from Google Sheet ===
+async function getSheetValue(spreadsheetId, range) {
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range,
+  });
+  return res.data.values?.[0]?.[0] ?? "unknown";
+}
+
+
 // === Message Handling ===
 client.on("messageCreate", async (message) => {
   if (processedMessages.has(message.id)) return;
@@ -120,10 +130,10 @@ client.on("messageCreate", async (message) => {
   }
 
   // --- PHRASE HANDLER (humans only, any channel) ---
+  // --- PHRASE HANDLER (humans only, any channel) ---
   if (!message.content || typeof message.content !== 'string' || !message.content.trim()) return;
 
   const normalizedContent = message.content.trim().toLowerCase();
-      //console.log(`💬 Message content (normalized): "${normalizedContent}"`);
 
   let matched = false;
 
@@ -138,15 +148,25 @@ client.on("messageCreate", async (message) => {
       const regex = new RegExp(`\\b${escapeRegex(trigger.toLowerCase())}\\b`, 'i');
       if (regex.test(normalizedContent)) {
         if (repliedMessages.has(message.id)) {
-          console.log(`⏩ Already replied to message ${message.id}`);
           matched = true;
           break;
         }
 
         try {
-          await message.reply(phrase.response);
+          // -------------------------
+          // DYNAMIC PLACEHOLDER LOGIC
+          // -------------------------
+          let response = phrase.response;
+
+          if (response.includes("{{seasonEnd}}")) {
+            // Fetch season end date value from Standings!D20
+            const seasonEnd = await getSheetValue(SPREADSHEET_ID, "Standings!D20");
+            response = response.replace("{{seasonEnd}}", seasonEnd);
+          }
+
+          // Send the (possibly modified) response
+          await message.reply(response);
           repliedMessages.add(message.id);
-          console.log(`💬 Replied to message ${message.id} for trigger "${trigger}"`);
           matched = true;
           break;
         } catch (err) {
@@ -157,6 +177,8 @@ client.on("messageCreate", async (message) => {
 
     if (matched) break;
   }
+
+
  
  // if (!matched) console.log('❌ No phrase matched this message.');
 });

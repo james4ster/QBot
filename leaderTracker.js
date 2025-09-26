@@ -103,7 +103,7 @@ export async function checkLeaderChanges(seasonType = "Season", options = {}) {
       const prevLeader = cache[leaderKey]?.leader;
       const prevValue = cache[leaderKey]?.top5?.[0]?.Value;
 
-      if (prevLeader !== currentLeader && currentValue !== prevValue) {
+      if (prevLeader !== currentLeader && currentValue !== prevValue && currentValue > 0) {
         cache[leaderKey] = { leader: currentLeader, top5: sorted };
 
         const title = seasonType === "Playoffs" 

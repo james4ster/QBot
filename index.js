@@ -13,8 +13,13 @@ import { generateRecapVideo, sendVideoToDiscord } from './recapUtils/generateRec
 import { abbrToFullName, teamEmojiMap } from './teamMappings.js';
 import { summarizeChat } from './tldr.js'; // TL;DR logic
 
+// === sharp used for image processing ===
 import sharp from 'sharp';
 import fetch from 'node-fetch';
+
+// === Leader tracking ===
+import { checkLeaderChanges } from './leaderTracker.js';
+
 
 // === Phrase triggers ===
 const phrases = JSON.parse(fs.readFileSync('./phrases.json', 'utf-8'));
@@ -25,6 +30,24 @@ const PORT = process.env.PORT || 10000;
 app.use(express.json());
 app.get('/', (req, res) => res.send('QBot is alive!'));
 app.listen(PORT, () => console.log(`🌐 Express server listening on port ${PORT}`));
+
+// === Leader Check Endpoint ===
+app.get('/checkLeaders', async (req, res) => {
+  try {
+    // Optional security: check a token
+    const token = req.query.token;
+    if (process.env.LEADER_CHECK_TOKEN && token !== process.env.LEADER_CHECK_TOKEN) {
+      return res.status(403).send('Forbidden');
+    }
+
+    await checkLeaderChanges("Season"); // default seasonType
+    res.send('Leaders check complete ✅');
+  } catch (err) {
+    console.error('❌ Error in /checkLeaders:', err);
+    res.status(500).send('Error checking leaders');
+  }
+});
+
 
 // === Discord Bot ===
 const client = new Client({

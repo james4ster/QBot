@@ -51,8 +51,17 @@ recapUtils/videos/
 recapUtils/testRecapVideo.js
 recapUtils/testTTS.js
 
+# Ignore video directory
 videos/
-
 
 # Archive folder
 archive/
+
+# Ignore all test scripts
+testDMs.js
+testDraft.js
+testLeaders.js
+testPG.js
+
+# Ignore draft scripts for now
+ draftUtils/

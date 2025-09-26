@@ -160,7 +160,7 @@ async function getAwayTeamFromRow(rowNumber) {
 export async function sendVideoToDiscord(localPath, client, channelId) {
   try {
     if (!client) throw new Error('Discord client not provided');
-    const channel = await client.channels.fetch(channelId || process.env.BOX_SCORE_CHANNEL_ID);
+    const channel = await client.channels.fetch(channelId || process.env.DISCORD_HIGHLIGHTS);
     if (!channel) throw new Error('Could not find channel to send video');
 
     const file = new AttachmentBuilder(localPath);

@@ -50,16 +50,24 @@ function getColumnIndex(cat, type) {
 }
 
 // Get cache from Postgres
-async function loadCache() {
-  const res = await pool.query('SELECT * FROM leaders_cache');
-  const cache = {};
-  res.rows.forEach(r => {
-    cache[`${r.season_type}_${r.category}`] = {
-      leader: r.leader,
-      top5: r.top5
-    };
-  });
-  return cache;
+async function loadCache(retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await pool.query('SELECT * FROM leaders_cache');
+      const cache = {};
+      res.rows.forEach(r => {
+        cache[`${r.season_type}_${r.category}`] = {
+          leader: r.leader,
+          top5: r.top5
+        };
+      });
+      return cache;
+    } catch (err) {
+      console.warn(`loadCache attempt ${i+1} failed: ${err.message}`);
+      if (i === retries - 1) throw err;
+      await new Promise(r => setTimeout(r, 1000)); // wait 1 second before retry
+    }
+  }
 }
 
 // Save/update cache in Postgres

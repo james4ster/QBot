@@ -1,15 +1,11 @@
-import pkg from 'pg';
-const { Pool } = pkg;
 import { google } from 'googleapis';
 import fetch from 'node-fetch';
 import { teamEmojiMap } from './teamMappings.js';
+import { supabase } from './supabaseClient.js';
 
+// Environment variables
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_TICKLE_NEWS;
-
-const pool = new Pool({
-  connectionString: process.env.SUPABASE_DB_URL
-});
 
 // Stat categories
 const skaterCategories = ["G","A","PTS","SOG","CHK"];
@@ -17,6 +13,10 @@ const goalieCategories = ["W","SO","SV%","GAA"];
 
 // Discord webhook
 async function postToDiscord(content) {
+  if (!DISCORD_WEBHOOK_URL) {
+    console.error("❌ DISCORD_WEBHOOK_URL not set");
+    return;
+  }
   await fetch(DISCORD_WEBHOOK_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -49,39 +49,48 @@ function getColumnIndex(cat, type) {
   return type === "skater" ? skaterMap[cat] : goalieMap[cat];
 }
 
-// Get cache from Postgres
-async function loadCache(retries = 3) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const res = await pool.query('SELECT * FROM leaders_cache');
-      const cache = {};
-      res.rows.forEach(r => {
-        cache[`${r.season_type}_${r.category}`] = {
-          leader: r.leader,
-          top5: r.top5
-        };
-      });
-      return cache;
-    } catch (err) {
-      console.warn(`loadCache attempt ${i+1} failed: ${err.message}`);
-      if (i === retries - 1) throw err;
-      await new Promise(r => setTimeout(r, 1000)); // wait 1 second before retry
-    }
+// Load cache from Supabase
+async function loadCache() {
+  const { data, error } = await supabase
+    .from('leaders_cache')
+    .select('*');
+
+  if (error) {
+    console.error("loadCache error:", error.message);
+    throw error;
   }
+
+  const cache = {};
+  (data || []).forEach(r => {
+    cache[`${r.season_type}_${r.category}`] = {
+      leader: r.leader,
+      top5: r.top5
+    };
+  });
+  return cache;
 }
 
-// Save/update cache in Postgres
+// Save/update cache in Supabase
 async function saveCache(cache) {
   for (const key in cache) {
     const [seasonType, category] = key.split('_');
     const { leader, top5 } = cache[key];
 
-    await pool.query(`
-      INSERT INTO leaders_cache (season_type, category, leader, top5)
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (season_type, category)
-      DO UPDATE SET leader = EXCLUDED.leader, top5 = EXCLUDED.top5
-    `, [seasonType, category, leader, JSON.stringify(top5)]);
+    const { error } = await supabase
+      .from('leaders_cache')
+      .upsert(
+        {
+          season_type: seasonType,
+          category,
+          leader,
+          top5
+        },
+        { onConflict: ['season_type', 'category'] }
+      );
+
+    if (error) {
+      console.error("saveCache error:", error.message);
+    }
   }
 }
 
@@ -140,4 +149,11 @@ export async function checkLeaderChanges(seasonType = "Season", options = {}) {
     }
     await saveCache(cache);
   }
+}
+
+// Run immediately if this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  checkLeaderChanges("Season", { dryRun: false })
+    .then(() => console.log("Leader check completed."))
+    .catch(err => console.error("Error checking leaders:", err));
 }

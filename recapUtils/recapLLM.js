@@ -10,13 +10,14 @@ const client = new CohereClient({
 const teamPersonalities = {
   "Blawnox Banana": "constantly tired and drunk",
   "Barrow Phantoms": "nickname is tommy fumbles",
+  "Charleston Chaos": "ultramagnus was too lazy to send this teams logo",             // LOGO MISSING
   "Chicago Trash Pandas": "loves fall out boy and taylor swift",
   "Coruscant Imperials": "loves star wars and is the nicest guy in the league",
   "Down Bees": "plays effeminate with patented \"down vagina\"  shot",
-  "Ellicott City Hockey Club": "coach maryland mike is very smug and always sober",   // LOGO MISSING
+  "Ellicott City Hockey Club": "coach maryland mike is very smug and always sober",   
   "Graceland Kings": "very easily offended",
   "House Stark of Winterfell": "mention the movie nyad",
-  "Irvine Elephant Riders": "practices hard but still always loses",                 // LOGO MISSING
+  "Irvine Elephant Riders": "practices hard but still always loses",                 
   "Montley Crue": "most likable guy from Quitadelphia",
   "Naked City Junkies": "sleeps outside on the patio",
   "Superior Coasters": "cheats constantly",

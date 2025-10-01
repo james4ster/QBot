@@ -1,3 +1,15 @@
+/*===
+* This script checks for changes in the leaders of the main categories.  Stat must be > 0.  If there's a new leader, it posts the top 5 in the category to Discord (TickleNews Channel).
+
+* Stats tracked:
+   const skaterMap = { "G":13, "A":14, "PTS":15, "SOG":16, "CHK":17 };
+   const goalieMap  = { "W":22, "SO":16, "SV%":20, "GAA":21 };
+
+* Set to work for both regular season and playoffs.
+
+* Uses Supabase to cache the current leaders and top 5 for each category.  This process should be scheduled to run hourly from a GAS that UM set up.
+===*/
+
 import { google } from 'googleapis';
 import fetch from 'node-fetch';
 import { teamEmojiMap } from './teamMappings.js';

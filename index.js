@@ -40,6 +40,8 @@ app.get('/checkLeaders', async (req, res) => {
       return res.status(403).send('Forbidden');
     }
 
+    console.log("Leaders Checked"); // <- should show in Render logs
+
     await checkLeaderChanges("Season"); // default seasonType
     res.send('Leaders check complete ✅');
   } catch (err) {

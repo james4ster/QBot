@@ -76,7 +76,7 @@ async function loadCache() {
   (data || []).forEach(r => {
     cache[`${r.season_type}_${r.category}`] = {
       leader: r.leader,
-      top5: r.top5
+      top5: r.top5 ? JSON.parse(r.top5) : []
     };
   });
   return cache;
@@ -95,7 +95,7 @@ async function saveCache(cache) {
           season_type: seasonType,
           category,
           leader,
-          top5
+          top5: JSON.stringify(top5)
         },
         { onConflict: ['season_type', 'category'] }
       );

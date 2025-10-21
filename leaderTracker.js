@@ -62,7 +62,6 @@ function getColumnIndex(cat, type) {
 }
 
 // Load cache from Supabase
-// Load cache from Supabase
 async function loadCache() {
   const { data, error } = await supabase
     .from('leaders_cache')
@@ -85,7 +84,7 @@ async function loadCache() {
           top5 = [];
         }
       } else if (typeof r.top5 === 'object') {
-        top5 = r.top5; // already an object/array
+        top5 = r.top5;
       }
     }
 
@@ -96,7 +95,6 @@ async function loadCache() {
   });
   return cache;
 }
-
 
 // Save/update cache in Supabase
 async function saveCache(cache) {
@@ -158,7 +156,7 @@ export async function checkLeaderChanges(seasonType = "Season", options = {}) {
       const prevLeader = cache[leaderKey]?.leader;
       const prevValue = cache[leaderKey]?.top5?.[0]?.Value;
 
-      // Update cache always
+      // Always update in-memory cache
       cache[leaderKey] = { leader: currentLeader, top5: sorted };
 
       // Only push Discord message if the leader changed
@@ -181,13 +179,15 @@ export async function checkLeaderChanges(seasonType = "Season", options = {}) {
   processCategory(skaters, skaterCategories, "skater");
   processCategory(goalies, goalieCategories, "goalie");
 
+  // Always save cache, even if no Discord posts
+  await saveCache(cache);
+
   if (results.length) {
     if (options.dryRun) {
       console.log("Dry run - would post:\n", results.join("\n\n"));
     } else {
       await postToDiscord(results.join("\n\n"));
     }
-    await saveCache(cache);
   }
 }
 

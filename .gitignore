@@ -63,6 +63,8 @@ testDraft.js
 testLeaders.js
 testPG.js
 testSupabase.js
+testSupabaseCache.js
+testWins.js
 
 # Ignore draft scripts for now
  draftUtils/

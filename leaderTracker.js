@@ -118,10 +118,20 @@ export async function checkLeaderChanges(seasonType = "Season", options = {}) {
 
   function processCategory(players, categories, type) {
     categories.forEach(cat => {
-      const idx = getColumnIndex(cat, type);
+      let idx = getColumnIndex(cat, type);
+
+      // === Special handling for Wins ===
+      if (cat === "W" && type === "goalie") {
+        idx = 22; // Always use column W
+      }
+
       const sorted = players
-        .map(r => ({ Player: r[10], Team: r[8], Value: parseFloat(r[idx] || 0) }))
-        .sort((a,b) => cat === "GAA" ? a.Value - b.Value : b.Value - a.Value)
+        .map(r => ({
+          Player: r[10],
+          Team: r[8],
+          Value: Number(r[idx]) || 0   // Ensure numeric
+        }))
+        .sort((a, b) => cat === "GAA" ? a.Value - b.Value : b.Value - a.Value)
         .slice(0,5);
 
       if (!sorted.length) return;
@@ -149,6 +159,7 @@ export async function checkLeaderChanges(seasonType = "Season", options = {}) {
       }
     });
   }
+
 
   processCategory(skaters, skaterCategories, "skater");
   processCategory(goalies, goalieCategories, "goalie");

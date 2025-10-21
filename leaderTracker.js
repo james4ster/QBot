@@ -120,19 +120,19 @@ export async function checkLeaderChanges(seasonType = "Season", options = {}) {
     categories.forEach(cat => {
       let idx = getColumnIndex(cat, type);
 
-      // === Special handling for Wins ===
+      // Special handling for Wins
       if (cat === "W" && type === "goalie") {
-        idx = 22; // Always use column W
+        idx = 22;
       }
 
       const sorted = players
         .map(r => ({
           Player: r[10],
           Team: r[8],
-          Value: Number(r[idx]) || 0   // Ensure numeric
+          Value: Number(r[idx]) || 0
         }))
         .sort((a, b) => cat === "GAA" ? a.Value - b.Value : b.Value - a.Value)
-        .slice(0,5);
+        .slice(0, 5);
 
       if (!sorted.length) return;
 
@@ -142,9 +142,11 @@ export async function checkLeaderChanges(seasonType = "Season", options = {}) {
       const prevLeader = cache[leaderKey]?.leader;
       const prevValue = cache[leaderKey]?.top5?.[0]?.Value;
 
-      if (prevLeader !== currentLeader && currentValue !== prevValue && currentValue > 0) {
-        cache[leaderKey] = { leader: currentLeader, top5: sorted };
+      // Update cache always
+      cache[leaderKey] = { leader: currentLeader, top5: sorted };
 
+      // Only push Discord message if the leader changed
+      if (prevLeader !== currentLeader && currentValue > 0) {
         const title = seasonType === "Playoffs" 
           ? `🔥 New Playoff ${cat} Leader` 
           : `🔥 New ${cat} Leader`;
@@ -159,7 +161,6 @@ export async function checkLeaderChanges(seasonType = "Season", options = {}) {
       }
     });
   }
-
 
   processCategory(skaters, skaterCategories, "skater");
   processCategory(goalies, goalieCategories, "goalie");

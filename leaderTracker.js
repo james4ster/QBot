@@ -62,6 +62,7 @@ function getColumnIndex(cat, type) {
 }
 
 // Load cache from Supabase
+// Load cache from Supabase
 async function loadCache() {
   const { data, error } = await supabase
     .from('leaders_cache')
@@ -74,13 +75,28 @@ async function loadCache() {
 
   const cache = {};
   (data || []).forEach(r => {
+    let top5 = [];
+    if (r.top5) {
+      if (typeof r.top5 === 'string') {
+        try {
+          top5 = JSON.parse(r.top5);
+        } catch {
+          console.warn("Failed to parse top5 for", r.category, "using empty array");
+          top5 = [];
+        }
+      } else if (typeof r.top5 === 'object') {
+        top5 = r.top5; // already an object/array
+      }
+    }
+
     cache[`${r.season_type}_${r.category}`] = {
       leader: r.leader,
-      top5: r.top5 ? JSON.parse(r.top5) : []
+      top5
     };
   });
   return cache;
 }
+
 
 // Save/update cache in Supabase
 async function saveCache(cache) {
